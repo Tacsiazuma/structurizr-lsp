@@ -1,0 +1,11 @@
+{
+    "devDependencies": {
+        "@types/node": "^22.10.6"
+    },
+    "scripts": {
+        "build": "tsc -w"
+    },
+    "dependencies": {
+        "typescript": "^5.7.3"
+    }
+}

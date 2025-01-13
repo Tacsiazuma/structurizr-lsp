@@ -1,0 +1,4 @@
+*.js
+node_modules
+language_server.log
+
