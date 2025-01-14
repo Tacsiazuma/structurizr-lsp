@@ -58,4 +58,40 @@ func TestTokenizer(t *testing.T) {
 			assert.Equal(t, 0, tokens[1].Location.Pos)
 		}
 	})
+
+	t.Run("should return string literals when found", func(t *testing.T) {
+		content := `"name"`
+		tokens, _ := Tokenizer(content)
+		if assert.Equal(t, len(tokens), 1) {
+			assert.Equal(t, TokenString, tokens[0].Type)
+			assert.Equal(t, "name", tokens[0].Content)
+		}
+	})
+	t.Run("should return unterminated string literals when found", func(t *testing.T) {
+		content := `"name`
+		tokens, _ := Tokenizer(content)
+		if assert.Equal(t, len(tokens), 1) {
+			assert.Equal(t, TokenString, tokens[0].Type)
+			assert.Equal(t, "name", tokens[0].Content)
+			assert.Equal(t, false, tokens[0].Terminated)
+		}
+	})
+	t.Run("should return terminated string literals when found", func(t *testing.T) {
+		content := `"name"`
+		tokens, _ := Tokenizer(content)
+		if assert.Equal(t, len(tokens), 1) {
+			assert.Equal(t, TokenString, tokens[0].Type)
+			assert.Equal(t, "name", tokens[0].Content)
+			assert.Equal(t, true, tokens[0].Terminated)
+		}
+	})
+	t.Run("should handle escaped string literals when found", func(t *testing.T) {
+		content := `"name with \"another string\""`
+		tokens, _ := Tokenizer(content)
+		if assert.Equal(t, 1, len(tokens)) {
+			assert.Equal(t, TokenString, tokens[0].Type)
+			assert.Equal(t, "name with \"another string\"", tokens[0].Content)
+			assert.Equal(t, true, tokens[0].Terminated)
+		}
+	})
 }
