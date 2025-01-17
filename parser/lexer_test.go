@@ -63,12 +63,28 @@ func TestLexer(t *testing.T) {
 			assert.Equal(t, TokenSoftwareSystem, tokens[0].Type)
 		}
 	})
-	t.Run("should return single line comments keyword when found", func(t *testing.T) {
+	t.Run("should return double slash comment keyword when found", func(t *testing.T) {
 		content := "// comment"
 		tokens, _ := Lexer(content)
-		if assert.Equal(t, len(tokens), 1) {
+		if assert.Equal(t, 1, len(tokens)) {
 			assert.Equal(t, TokenComment, tokens[0].Type)
 			assert.Equal(t, "// comment", tokens[0].Content)
+		}
+	})
+	t.Run("should return multiline comment keyword when found", func(t *testing.T) {
+		content := "/* comment\n */"
+		tokens, _ := Lexer(content)
+		if assert.Equal(t, 1, len(tokens)) {
+			assert.Equal(t, TokenComment, tokens[0].Type)
+			assert.Equal(t, "/* comment\n */", tokens[0].Content)
+		}
+	})
+	t.Run("should return hashmark comments keyword when found", func(t *testing.T) {
+		content := "# comment"
+		tokens, _ := Lexer(content)
+		if assert.Equal(t, 1, len(tokens)) {
+			assert.Equal(t, TokenComment, tokens[0].Type)
+			assert.Equal(t, "# comment", tokens[0].Content)
 		}
 	})
 	t.Run("should return open brace symbol when found", func(t *testing.T) {
@@ -101,7 +117,7 @@ func TestLexer(t *testing.T) {
 		tokens, _ := Lexer(content)
 		if assert.Equal(t, 3, len(tokens)) {
 			assert.Equal(t, TokenNewline, tokens[1].Type)
-			assert.Equal(t, "\n", tokens[1].Content)
+			assert.Equal(t, "", tokens[1].Content)
 		}
 	})
 
@@ -177,7 +193,7 @@ func TestLexer(t *testing.T) {
 		content := "identifier = component"
 		tokens, _ := Lexer(content)
 		if assert.Equal(t, 3, len(tokens)) {
-			assert.Equal(t, TokenKeyword, tokens[2].Type)
+			assert.Equal(t, TokenComponent, tokens[2].Type)
 			assert.Equal(t, "component", tokens[2].Content)
 		}
 	})

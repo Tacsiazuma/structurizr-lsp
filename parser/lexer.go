@@ -54,6 +54,9 @@ func Lexer(content string) ([]Token, error) {
 			if text == "\"" {
 				state = "string"
 				token = &Token{Type: TokenString, Content: "", Location: Location{Line: line, Pos: pos}}
+			} else if text == "/" || text == "#" {
+				state = "singlelinecomment"
+				token = &Token{Type: TokenComment, Content: text, Location: Location{Line: line, Pos: pos}}
 			} else if !unicode.IsSpace(rune(text[0])) {
 				state = "keyword"
 				token = &Token{Type: TokenKeyword, Content: text, Location: Location{Line: line, Pos: pos}}
@@ -82,8 +85,26 @@ func Lexer(content string) ([]Token, error) {
 			} else {
 				token.Content += text
 			}
+		case "singlelinecomment":
+			if text == "\n" {
+				tokens = append(tokens, *token)
+				token = nil
+				state = "start"
+			} else {
+				token.Content += text
+			}
+			if len(token.Content) == 2 && token.Content == "/*" {
+				state = "multilinecomment"
+			}
+		case "multilinecomment":
+			token.Content += text
+			if strings.HasSuffix(token.Content, "*/") {
+				tokens = append(tokens, *token)
+				token = nil
+				state = "start"
+			}
 		}
-		if text == "\n" {
+		if text == "\n" && state != "multilinecomment" {
 			token = &Token{Type: TokenNewline, Content: "", Location: Location{Line: line, Pos: pos}}
 			tokens = append(tokens, *token)
 			token = nil
