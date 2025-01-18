@@ -2,6 +2,8 @@ package parser
 
 import (
 	"bufio"
+	"log"
+	"os"
 	"strings"
 	"unicode"
 )
@@ -26,19 +28,32 @@ const (
 	TokenWorkspace      TokenType = "workspace"
 	TokenModel          TokenType = "model"
 	TokenGroup          TokenType = "group"
-	TokenBraceOpen      TokenType = "braceopen"
-	TokenBraceClose     TokenType = "braceclose"
-	TokenEqual          TokenType = "equal"
-	TokenRelation       TokenType = "relation"
+	TokenBraceOpen      TokenType = "{"
+	TokenBraceClose     TokenType = "}"
+	TokenEqual          TokenType = "="
+	TokenRelation       TokenType = "->"
 	TokenViews          TokenType = "views"
 	TokenPerson         TokenType = "person"
 	TokenContainer      TokenType = "container"
 	TokenComponent      TokenType = "component"
 	TokenComment        TokenType = "comment"
 	TokenSoftwareSystem TokenType = "softwareSystem"
+	TokenEof            TokenType = "EOF"
 )
 
+var logger *log.Logger
+
+func initLogger() {
+	logFile, err := os.OpenFile("/home/tacsiazuma/work/structurizr-lsp/parser.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatalf("Failed to open log file: %v", err)
+	}
+
+	logger = log.New(logFile, "", log.LstdFlags|log.Lshortfile)
+}
+
 func Lexer(content string) ([]Token, error) {
+	initLogger()
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	scanner.Split(bufio.ScanRunes)
 	tokens := make([]Token, 0)
@@ -49,6 +64,7 @@ func Lexer(content string) ([]Token, error) {
 	escaped := false
 	for scanner.Scan() {
 		text := scanner.Text()
+		logger.Println("Scanning:" + text)
 		switch state {
 		case "start":
 			if text == "\"" {
@@ -76,7 +92,7 @@ func Lexer(content string) ([]Token, error) {
 				token.Content += text
 			} else if text == "\\" {
 				escaped = true
-			} else if text == `"` {
+			} else if text == `"` || text == "\n" {
 				token.Terminated = true
 				tokens = append(tokens, *token)
 				token = nil
@@ -93,7 +109,7 @@ func Lexer(content string) ([]Token, error) {
 			} else {
 				token.Content += text
 			}
-			if len(token.Content) == 2 && token.Content == "/*" {
+			if token != nil && len(token.Content) == 2 && token.Content == "/*" {
 				state = "multilinecomment"
 			}
 		case "multilinecomment":
@@ -118,6 +134,7 @@ func Lexer(content string) ([]Token, error) {
 		categorize(token)
 		tokens = append(tokens, *token)
 	}
+	tokens = append(tokens, Token{Type: TokenEof, Content: "EOF", Location: Location{Line: line, Pos: pos}})
 	return tokens, nil
 }
 
