@@ -2,9 +2,11 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Parser struct {
+	root        *ASTNode
 	tokens      []Token
 	position    int
 	diagnostics []*Diagnostic
@@ -19,6 +21,36 @@ type Workspace struct {
 	model *Model
 	views *ViewSet
 }
+
+type ASTNode struct {
+	Token
+	Type       string            // The type of the node (e.g., "workspace")
+	Value      string            // The value of the node (if applicable, e.g., "name" or "description")
+	Attributes map[string]string // Key-value pairs for additional attributes (e.g., {"name": "name", "description": "description"})
+	Children   []*ASTNode        // Nested nodes (e.g., body of the workspace)
+}
+
+func NewNode(token *Token, t string) *ASTNode {
+	return &ASTNode{Token: *token, Type: t, Attributes: make(map[string]string)}
+}
+
+func (n *ASTNode) ToString() string {
+	attributes := mapToString(n.Attributes)
+	return fmt.Sprintf("(%s %s)", n.Type, attributes)
+}
+
+func mapToString(m map[string]string) string {
+	var builder strings.Builder
+
+	for key, value := range m {
+		builder.WriteString(fmt.Sprintf("(%s %s) ", key, value))
+	}
+
+	// Trim the trailing space
+	result := strings.TrimSpace(builder.String())
+	return result
+}
+
 type Model struct{}
 type ViewSet struct{}
 
@@ -34,9 +66,9 @@ type Diagnostic struct {
 	Severity DiagnosticSeverity
 }
 
-func (p *Parser) Parse() (*Workspace, []*Diagnostic) {
-    workspace := p.consumeWorkspace()
-	return workspace, p.diagnostics
+func (p *Parser) Parse() (*ASTNode, []*Diagnostic) {
+	ast := p.consumeWorkspace()
+	return ast, p.diagnostics
 }
 
 /**
@@ -81,6 +113,13 @@ func (p *Parser) match(t TokenType) *Token {
 	}
 }
 
+func (p *Parser) matchAttribute(node *ASTNode, name string, t TokenType) {
+	token := p.match(t)
+	if token != nil {
+		node.Attributes[name] = token.Content
+	}
+}
+
 func (p *Parser) expect(t TokenType) *Token {
 	current := p.peek()
 	if current.Type == t {
@@ -100,23 +139,32 @@ func (p *Parser) addDiagnostic(severity DiagnosticSeverity, message string, loca
 	})
 }
 
-func (p *Parser) consumeWorkspace() *Workspace {
+func (p *Parser) consumeWorkspace() *ASTNode {
+	// comments, newlines ignore
+	// workspace token, wrap in node
 	p.consume(TokenComment, TokenNewline)
-	if p.expect(TokenWorkspace) == nil {
+	if workspace := p.expect(TokenWorkspace); workspace == nil {
 		return nil
+	} else {
+		p.root = NewNode(workspace, "workspace")
 	}
-	p.match(TokenString)
-	p.match(TokenString)
+	p.matchAttribute(p.root, "name", TokenString)
+	p.matchAttribute(p.root, "description", TokenString)
 	if p.expect(TokenBraceOpen) == nil {
 		return nil
 	}
 	if p.expect(TokenNewline) == nil {
 		return nil
 	}
-	model := p.consumeModel()
-	views := p.consumeViews()
-	// consumeCloseBracket()
-	return &Workspace{model: model, views: views}
+	_ = p.consumeModel()
+	_ = p.consumeViews()
+	if p.expect(TokenNewline) == nil {
+		return nil
+	}
+	if p.expect(TokenBraceClose) == nil {
+		return nil
+	}
+	return p.root
 }
 
 func (p *Parser) consumeModel() *Model {

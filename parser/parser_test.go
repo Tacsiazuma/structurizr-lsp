@@ -72,6 +72,12 @@ func TestParser(t *testing.T) {
 		workspace, _ := sut.Parse()
 		assert.Equal(t, &Workspace{model: &Model{}, views: &ViewSet{}}, workspace)
 	})
+	t.Run("workspace elements can be defined in any order", func(t *testing.T) {
+		sut := New("workspace \"name\" {\n views {\n}\nmodel {\n}\n}")
+		workspace, diagnostics := sut.Parse()
+        assert.Empty(t, diagnostics)
+		assert.Equal(t, "(workspace (name name) (description nil))", workspace.ToString())
+	})
 
 	t.Run("fails when too many strings for workspace", func(t *testing.T) {
 		sut := New("workspace \"name\" \"Description\" \"some\" {\n}")
