@@ -95,7 +95,8 @@ type ViewSet struct{}
 type DiagnosticSeverity string
 
 var (
-	DiagnosticError DiagnosticSeverity = "error"
+	DiagnosticError   DiagnosticSeverity = "error"
+	DiagnosticWarning DiagnosticSeverity = "warning"
 )
 
 type Diagnostic struct {

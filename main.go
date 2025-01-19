@@ -70,8 +70,8 @@ func main() {
 }
 
 func handleDidOpen(param DidOpenTextDocumentParams) {
-	p := parser.New(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.TextDocument.Text, parser.NewIncluder())
-	_, diags := p.Parse()
+	a := parser.NewAnalyser(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.TextDocument.Text)
+	_, _, diags := a.Analyse()
 	publishDiagnostics(diags)
 }
 
@@ -100,8 +100,8 @@ func publishDiagnostics(diags []*parser.Diagnostic) {
 }
 
 func handleDidChange(param DidChangeTextDocumentParams) {
-	p := parser.New(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.ContentChanges[0].Text, parser.NewIncluder())
-	_, diags := p.Parse()
+	p := parser.NewAnalyser(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.ContentChanges[0].Text)
+	_, _, diags := p.Analyse()
 	publishDiagnostics(diags)
 }
 
