@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"runtime/debug"
 	"strings"
 
 	"github.com/tacsiazuma/structurizr-lsp/parser"
@@ -12,6 +13,11 @@ import (
 
 func main() {
 	initLogger()
+	if os.Args[len(os.Args)-1] == "version" {
+		info, _ := debug.ReadBuildInfo()
+		fmt.Println(info.Main.Version)
+		return
+	}
 	// Defer a function to recover from panics
 	defer func() {
 		if r := recover(); r != nil {
