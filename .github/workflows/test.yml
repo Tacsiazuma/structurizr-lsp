@@ -1,0 +1,30 @@
+name: Go Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the code from the repository
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Set up Go environment
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23' # Specify your Go version
+
+    # Install dependencies
+    - name: Install dependencies
+      run: go mod tidy
+
+    # Run tests
+    - name: Run tests
+      run: go test -v ./...
