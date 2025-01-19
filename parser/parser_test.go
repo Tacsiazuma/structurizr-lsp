@@ -7,8 +7,9 @@ import (
 )
 
 func TestParser(t *testing.T) {
+	file := "test.dsl"
 	t.Run("expect workspace as a start", func(t *testing.T) {
-		sut := New("something")
+		sut := New(file, "something")
 		workspace, diagnostics := sut.Parse()
 		assert.Nil(t, workspace)
 		assert.Equal(t, 1, len(diagnostics))
@@ -19,7 +20,7 @@ func TestParser(t *testing.T) {
 		assert.Equal(t, DiagnosticError, d.Severity)
 	})
 	t.Run("jump over comments", func(t *testing.T) {
-		sut := New("# comment\nsomething")
+		sut := New(file, "# comment\nsomething")
 		workspace, diagnostics := sut.Parse()
 		assert.Nil(t, workspace)
 		assert.Equal(t, 1, len(diagnostics))
@@ -30,57 +31,90 @@ func TestParser(t *testing.T) {
 		assert.Equal(t, DiagnosticError, d.Severity)
 	})
 	t.Run("workspace cannot be followed by keyword", func(t *testing.T) {
-		sut := New("workspace something")
-		workspace, diagnostics := sut.Parse()
-		assert.Nil(t, workspace)
+		sut := New(file, "workspace something")
+		_, diagnostics := sut.Parse()
 		assert.Equal(t, "Expected { but found something", diagnostics[0].Message)
 		assert.Equal(t, DiagnosticError, diagnostics[0].Severity)
 	})
 	t.Run("workspace can be followed by string", func(t *testing.T) {
-		sut := New("workspace \"name\" {")
-		workspace, diagnostics := sut.Parse()
-		assert.Nil(t, workspace)
+		sut := New(file, "workspace \"name\" {")
+		_, diagnostics := sut.Parse()
 		assert.Equal(t, "Expected newline but found EOF", diagnostics[0].Message)
 		assert.Equal(t, DiagnosticError, diagnostics[0].Severity)
 	})
-	t.Run("workspace must contain model", func(t *testing.T) {
-		sut := New("workspace \"name\" {\n}")
-		workspace, diagnostics := sut.Parse()
-		assert.Nil(t, workspace)
-		assert.Equal(t, "Expected model but found }", diagnostics[0].Message)
+	t.Run("workspace must contain model and views", func(t *testing.T) {
+		sut := New(file, "workspace \"name\" {\n}")
+		_, diagnostics := sut.Parse()
+		assert.Equal(t, "Workspace must contain model and views", diagnostics[0].Message)
 		assert.Equal(t, DiagnosticError, diagnostics[0].Severity)
 	})
 
 	t.Run("workspace must contain views", func(t *testing.T) {
-		sut := New("workspace \"name\" {\n model {\n}\n}")
-		workspace, diagnostics := sut.Parse()
-		assert.Nil(t, workspace)
+		sut := New(file, "workspace \"name\" {\n model {\n}\n}")
+		_, diagnostics := sut.Parse()
 		if assert.Equal(t, 1, len(diagnostics)) {
-			assert.Equal(t, "Expected views but found }", diagnostics[0].Message)
+			assert.Equal(t, "Workspace must contain model and views", diagnostics[0].Message)
 			assert.Equal(t, DiagnosticError, diagnostics[0].Severity)
 		}
 	})
 
 	t.Run("minimal workspace parses without errors", func(t *testing.T) {
-		sut := New("workspace \"name\" {\n model {\n}\nviews {\n}\n}")
+		sut := New(file, "workspace \"name\" {\n model {\n}\nviews {\n}\n}")
 		_, diagnostics := sut.Parse()
 		assert.Equal(t, 0, len(diagnostics))
 	})
-
-	t.Run("minimal workspace returns workspace", func(t *testing.T) {
-		sut := New("workspace \"name\" {\n model {\n}\nviews {\n}\n}")
-		workspace, _ := sut.Parse()
-		assert.Equal(t, &Workspace{model: &Model{}, views: &ViewSet{}}, workspace)
+	t.Run("assignments are handled", func(t *testing.T) {
+		sut := New(file, "a = workspace")
+		ast, diagnostics := sut.Parse()
+		assert.Equal(t, 0, len(diagnostics))
+		assert.Equal(t, "(root  (=  (a  )(workspace  )))", ast.ToString())
 	})
+	t.Run("nested assignments are handled", func(t *testing.T) {
+		sut := New(file, "a = workspace {\n b = component\n}")
+		ast, diagnostics := sut.Parse()
+		assert.Equal(t, 0, len(diagnostics))
+		assert.Equal(t, "(root  (=  (a  )(workspace  (=  (b  )(component  )))))", ast.ToString())
+	})
+	t.Run("assignments with attributes are handled", func(t *testing.T) {
+		sut := New(file, "a = workspace \"test\" {\n}")
+		ast, diagnostics := sut.Parse()
+		assert.Equal(t, 0, len(diagnostics))
+		assert.Equal(t, "(root  (=  (a  )(workspace (test) )))", ast.ToString())
+	})
+	t.Run("includes files to the token stream", func(t *testing.T) {
+		sut := New(file, "!include file.dsl")
+		ast, diagnostics := sut.Parse()
+		assert.Equal(t, 0, len(diagnostics))
+		assert.Equal(t, "(root  (=  (a  )(workspace (test) )))", ast.ToString())
+	})
+
 	t.Run("workspace elements can be defined in any order", func(t *testing.T) {
-		sut := New("workspace \"name\" {\n views {\n}\nmodel {\n}\n}")
-		workspace, diagnostics := sut.Parse()
-        assert.Empty(t, diagnostics)
-		assert.Equal(t, "(workspace (name name) (description nil))", workspace.ToString())
+		sut := New(file, "workspace \"name\" \"description\" {\n views {\n}\nmodel {\n}\n}")
+		ast, diagnostics := sut.Parse()
+		assert.Equal(t, "(root  (workspace (name) (description) (views  )(model  )))", ast.ToString())
+		assert.Empty(t, diagnostics)
+	})
+	t.Run("second keyword in a line appear as attribute", func(t *testing.T) {
+		sut := New(file, "workspace \"name\" \"description\" {\n !identifiers flat \n views {\n}\nmodel {\n}\n}")
+		ast, diagnostics := sut.Parse()
+		assert.Equal(t, "(root  (workspace (name) (description) (!identifiers (flat) )(views  )(model  )))", ast.ToString())
+		assert.Empty(t, diagnostics)
+	})
+	t.Run("multiple level of children allowed", func(t *testing.T) {
+		sut := New(file, "workspace {\n model {\nsystemContext \"context\"{\n container \"container\"{\ncomponent \"component\"\n}\n}\n}\n}")
+		ast, diagnostics := sut.Parse()
+		assert.Equal(t, "(root  (workspace  (model  (systemContext (context) (container (container) (component (component) ))))))", ast.ToString())
+		assert.Empty(t, diagnostics)
+	})
+	t.Run("docs are added as a child", func(t *testing.T) {
+		sut := New(file, "workspace \"name\" \"description\" {\n!docs docs\n views {\n}\nmodel {\n}\n}")
+		ast, diagnostics := sut.Parse()
+		assert.Equal(t, "(workspace (name) (description) (!docs docs) (views  )(model  ))", ast.ToString())
+		assert.Empty(t, diagnostics)
 	})
 
 	t.Run("fails when too many strings for workspace", func(t *testing.T) {
-		sut := New("workspace \"name\" \"Description\" \"some\" {\n}")
+		sut := New(file, "workspace \"name\" \"Description\" \"some\" {\n}")
 		_, diagnostics := sut.Parse()
 		if assert.Equal(t, 1, len(diagnostics)) {
 			assert.Equal(t, "Expected { but found some", diagnostics[0].Message)

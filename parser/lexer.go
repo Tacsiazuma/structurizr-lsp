@@ -16,29 +16,22 @@ type Token struct {
 }
 
 type Location struct {
-	Line int
-	Pos  int
+	Source string
+	Line   int
+	Pos    int
 }
 type TokenType string
 
 const (
-	TokenKeyword        TokenType = "keyword"
-	TokenString         TokenType = "string"
-	TokenNewline        TokenType = "newline"
-	TokenWorkspace      TokenType = "workspace"
-	TokenModel          TokenType = "model"
-	TokenGroup          TokenType = "group"
-	TokenBraceOpen      TokenType = "{"
-	TokenBraceClose     TokenType = "}"
-	TokenEqual          TokenType = "="
-	TokenRelation       TokenType = "->"
-	TokenViews          TokenType = "views"
-	TokenPerson         TokenType = "person"
-	TokenContainer      TokenType = "container"
-	TokenComponent      TokenType = "component"
-	TokenComment        TokenType = "comment"
-	TokenSoftwareSystem TokenType = "softwareSystem"
-	TokenEof            TokenType = "EOF"
+	TokenKeyword    TokenType = "keyword"
+	TokenString     TokenType = "string"
+	TokenNewline    TokenType = "newline"
+	TokenBraceOpen  TokenType = "{"
+	TokenBraceClose TokenType = "}"
+	TokenEqual      TokenType = "="
+	TokenRelation   TokenType = "->"
+	TokenComment    TokenType = "comment"
+	TokenEof        TokenType = "EOF"
 )
 
 var logger *log.Logger
@@ -52,7 +45,7 @@ func initLogger() {
 	logger = log.New(logFile, "", log.LstdFlags|log.Lshortfile)
 }
 
-func Lexer(content string) ([]Token, error) {
+func Lexer(source string, content string) ([]Token, error) {
 	initLogger()
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	scanner.Split(bufio.ScanRunes)
@@ -69,13 +62,13 @@ func Lexer(content string) ([]Token, error) {
 		case "start":
 			if text == "\"" {
 				state = "string"
-				token = &Token{Type: TokenString, Content: "", Location: Location{Line: line, Pos: pos}}
+                token = &Token{Type: TokenString, Content: "", Location: Location{Source: source, Line: line, Pos: pos}}
 			} else if text == "/" || text == "#" {
 				state = "singlelinecomment"
-				token = &Token{Type: TokenComment, Content: text, Location: Location{Line: line, Pos: pos}}
+				token = &Token{Type: TokenComment, Content: text, Location: Location{Source: source, Line: line, Pos: pos}}
 			} else if !unicode.IsSpace(rune(text[0])) {
 				state = "keyword"
-				token = &Token{Type: TokenKeyword, Content: text, Location: Location{Line: line, Pos: pos}}
+				token = &Token{Type: TokenKeyword, Content: text, Location: Location{Source: source, Line: line, Pos: pos}}
 			}
 		case "keyword":
 			if !unicode.IsSpace([]rune(text)[0]) {
@@ -121,7 +114,7 @@ func Lexer(content string) ([]Token, error) {
 			}
 		}
 		if text == "\n" && state != "multilinecomment" {
-			token = &Token{Type: TokenNewline, Content: "", Location: Location{Line: line, Pos: pos}}
+			token = &Token{Type: TokenNewline, Content: "", Location: Location{Source: source, Line: line, Pos: pos}}
 			tokens = append(tokens, *token)
 			token = nil
 			pos = 0
@@ -134,18 +127,12 @@ func Lexer(content string) ([]Token, error) {
 		categorize(token)
 		tokens = append(tokens, *token)
 	}
-	tokens = append(tokens, Token{Type: TokenEof, Content: "EOF", Location: Location{Line: line, Pos: pos}})
+	tokens = append(tokens, Token{Type: TokenEof, Content: "EOF", Location: Location{Source: source, Line: line, Pos: pos}})
 	return tokens, nil
 }
 
 func categorize(token *Token) {
 	switch token.Content {
-	case "workspace":
-		token.Type = TokenWorkspace
-	case "model":
-		token.Type = TokenModel
-	case "group":
-		token.Type = TokenGroup
 	case "{":
 		token.Type = TokenBraceOpen
 	case "}":
@@ -154,15 +141,5 @@ func categorize(token *Token) {
 		token.Type = TokenEqual
 	case "->":
 		token.Type = TokenRelation
-	case "views":
-		token.Type = TokenViews
-	case "person":
-		token.Type = TokenPerson
-	case "container":
-		token.Type = TokenContainer
-	case "softwareSystem":
-		token.Type = TokenSoftwareSystem
-	case "component":
-		token.Type = TokenComponent
 	}
 }
