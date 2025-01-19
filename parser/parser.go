@@ -12,8 +12,8 @@ type Parser struct {
 	diagnostics []*Diagnostic
 }
 
-func New(source string, content string) *Parser {
-	tokens, _ := Lexer(source, content)
+func New(source string, content string, in Includer) *Parser {
+	tokens, _ := Lexer(source, content, in)
 	return &Parser{tokens: tokens, root: NewNode(&Token{Content: "root"}, "root"), position: 0, diagnostics: make([]*Diagnostic, 0)}
 }
 
@@ -254,91 +254,3 @@ func (p *Parser) addDiagnostic(severity DiagnosticSeverity, message string, loca
 		Location: location,
 	})
 }
-
-// // line by line
-// // keyword first
-// // strings added as attributes
-// // { goes one level deeper to add children
-// func (p *Parser) consumeWorkspace() *ASTNode {
-// 	p.consume(TokenComment, TokenNewline)
-// 	if workspace := p.expect(TokenWorkspace); workspace == nil {
-// 		return nil
-// 	} else {
-// 		p.root = NewNode(workspace, "workspace")
-// 	}
-// 	p.addOptionalAttributes(p.root, TokenString)
-// 	p.addOptionalAttributes(p.root, TokenString)
-// 	if !p.expectSequence(TokenBraceOpen, TokenNewline) {
-// 		return nil
-// 	}
-// loop:
-// 	for {
-// 		t := p.peek()
-// 		switch t.Type {
-// 		case TokenModel:
-// 			p.root.AddChild(p.consumeModel(t))
-// 		case TokenViews:
-// 			p.root.AddChild(p.consumeViews(t))
-// 		case TokenNewline:
-// 			p.consume(TokenNewline)
-// 		case TokenBraceClose:
-// 			break loop
-// 		case TokenKeyword:
-// 			p.root.AddChild(p.consumeKeyword(t))
-// 		case TokenEof:
-// 			break loop
-// 		default:
-// 			break loop
-// 		}
-// 	}
-// 	if !p.root.HasChild(TokenModel) || !p.root.HasChild(TokenViews) {
-// 		p.addDiagnostic(DiagnosticError, "Workspace must contain model and views", p.root.Location)
-// 	}
-// 	return p.root
-// }
-//
-// func (p *Parser) consumeKeyword(t *Token) *ASTNode {
-//
-// }
-//
-// func (p *Parser) consumeModel(t *Token) *ASTNode {
-// 	node := NewNode(t, "model")
-// 	if !p.expectSequence(TokenModel, TokenBraceOpen) {
-// 		return nil
-// 	}
-// loop:
-// 	for {
-// 		t := p.peek()
-// 		switch t.Type {
-// 		case TokenNewline:
-// 			p.consume(TokenNewline)
-// 		case TokenBraceClose:
-// 			p.consume(TokenBraceClose)
-// 			return node
-// 		default:
-// 			break loop
-// 		}
-// 	}
-// 	return node
-// }
-//
-// func (p *Parser) consumeViews(t *Token) *ASTNode {
-// 	node := NewNode(t, "views")
-// 	if !p.expectSequence(TokenViews, TokenBraceOpen) {
-// 		return nil
-// 	}
-// loop:
-// 	for {
-// 		t := p.peek()
-// 		switch t.Type {
-// 		case TokenNewline:
-// 			p.consume(TokenNewline)
-// 		case TokenBraceClose:
-// 			p.consume(TokenBraceClose)
-// 			return node
-// 		default:
-// 			break loop
-// 		}
-// 	}
-// 	return node
-// }

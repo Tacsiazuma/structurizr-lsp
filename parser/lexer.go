@@ -45,7 +45,7 @@ func initLogger() {
 	logger = log.New(logFile, "", log.LstdFlags|log.Lshortfile)
 }
 
-func Lexer(source string, content string) ([]Token, error) {
+func Lexer(source string, content string, includer Includer) ([]Token, error) {
 	initLogger()
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	scanner.Split(bufio.ScanRunes)
@@ -62,7 +62,7 @@ func Lexer(source string, content string) ([]Token, error) {
 		case "start":
 			if text == "\"" {
 				state = "string"
-                token = &Token{Type: TokenString, Content: "", Location: Location{Source: source, Line: line, Pos: pos}}
+				token = &Token{Type: TokenString, Content: "", Location: Location{Source: source, Line: line, Pos: pos}}
 			} else if text == "/" || text == "#" {
 				state = "singlelinecomment"
 				token = &Token{Type: TokenComment, Content: text, Location: Location{Source: source, Line: line, Pos: pos}}
@@ -127,8 +127,30 @@ func Lexer(source string, content string) ([]Token, error) {
 		categorize(token)
 		tokens = append(tokens, *token)
 	}
+	tokens, err := checkIncludedFiles(tokens, source, includer)
 	tokens = append(tokens, Token{Type: TokenEof, Content: "EOF", Location: Location{Source: source, Line: line, Pos: pos}})
-	return tokens, nil
+	return tokens, err
+}
+
+func checkIncludedFiles(tokens []Token, source string, in Includer) ([]Token, error) {
+	result := make([]Token, 0)
+	for i := 0; i < len(tokens); i++ {
+		if tokens[i].Content == "!include" && i+1 < len(tokens) {
+			path := tokens[i+1].Content
+			content, err := in.include(source, path)
+			included, err := Lexer(path, content, in)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, tokens[i])
+			result = append(result, tokens[i+1])
+			result = append(result, included[:len(included)-1]...)
+			i++
+		} else {
+			result = append(result, tokens[i])
+		}
+	}
+	return result, nil
 }
 
 func categorize(token *Token) {

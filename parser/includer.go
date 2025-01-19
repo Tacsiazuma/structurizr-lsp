@@ -8,14 +8,28 @@ import (
 	"strings"
 )
 
-type Includer struct {
+type FSIncluder struct {
 }
 
-func NewIncluder() *Includer {
-	return &Includer{}
+type Includer interface {
+	include(current, included string) (string, error)
 }
 
-func (f *Includer) include(current, included string) (string, error) {
+type FakeIncluder struct {
+}
+
+func (f *FakeIncluder) include(current, included string) (string, error) {
+	if included == "test.dsl" {
+		return "user \"Person\"", nil
+	}
+	return "", fmt.Errorf("failed to open " + included)
+}
+
+func NewIncluder() Includer {
+	return &FSIncluder{}
+}
+
+func (f *FSIncluder) include(current, included string) (string, error) {
 	// Resolve the absolute path
 	baseDir := filepath.Dir(current)
 	absolutePath := filepath.Join(baseDir, included)
