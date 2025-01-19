@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"tacsiazuma/structurizr-lsp/parser"
+	"github.com/tacsiazuma/structurizr-lsp/parser"
 )
 
 func main() {

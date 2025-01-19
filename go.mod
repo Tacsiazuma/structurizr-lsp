@@ -1,4 +1,4 @@
-module tacsiazuma/structurizr-lsp
+module github.com/tacsiazuma/structurizr-lsp
 
 go 1.23.3
 
