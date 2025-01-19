@@ -18,20 +18,22 @@ func New(source string, content string, in Includer) *Parser {
 }
 
 type Workspace struct {
-	model *Model
-	views *ViewSet
+	model       *Model
+	views       *ViewSet
+	name        string
+	description string
 }
 
 type ASTNode struct {
 	Token
 	Type       string     // The type of the node (e.g., "workspace")
 	Value      string     // The value of the node (if applicable, e.g., "name" or "description")
-	Attributes []string   // Key-value pairs for additional attributes (e.g., {"name": "name", "description": "description"})
+	Attributes []*Token   // Key-value pairs for additional attributes (e.g., {"name": "name", "description": "description"})
 	Children   []*ASTNode // Nested nodes (e.g., body of the workspace)
 }
 
 func NewNode(token *Token, t string) *ASTNode {
-	return &ASTNode{Token: *token, Type: t, Attributes: make([]string, 0), Children: make([]*ASTNode, 0)}
+	return &ASTNode{Token: *token, Type: t, Attributes: make([]*Token, 0), Children: make([]*ASTNode, 0)}
 }
 func displayTree(node *ASTNode, prefix string, isLast bool) {
 	var connector string
@@ -77,11 +79,11 @@ func (n *ASTNode) HasChild(t TokenType) bool {
 	return false
 
 }
-func mapToString(m []string) string {
+func mapToString(m []*Token) string {
 	var builder strings.Builder
 
 	for _, value := range m {
-		builder.WriteString(fmt.Sprintf("(%s) ", value))
+		builder.WriteString(fmt.Sprintf("(%s) ", value.Content))
 	}
 
 	// Trim the trailing space
@@ -139,7 +141,7 @@ func (p *Parser) parse(parent *ASTNode) {
 					parent.AddChild(current)
 				} else {
 					// handle subsequent keywords as attributes
-					current.Attributes = append(current.Attributes, t.Content)
+					current.Attributes = append(current.Attributes, t)
 				}
 			case TokenEqual:
 				continue
@@ -148,7 +150,7 @@ func (p *Parser) parse(parent *ASTNode) {
 					p.addDiagnostic(DiagnosticError, "Unexpected token, expected keyword got string", t.Location)
 					return
 				}
-				current.Attributes = append(current.Attributes, t.Content)
+				current.Attributes = append(current.Attributes, t)
 			case TokenBraceOpen:
 				if i == 0 {
 					p.addDiagnostic(DiagnosticError, "Opening curly brace symbols ({) must be on the same line.", t.Location)
