@@ -12,15 +12,18 @@ type FSIncluder struct {
 }
 
 type Includer interface {
-	include(current, included string) (string, error)
+	include(included string) (string, error)
 }
 
 type FakeIncluder struct {
 }
 
-func (f *FakeIncluder) include(current, included string) (string, error) {
-	if included == "test.dsl" {
+func (f *FakeIncluder) include(included string) (string, error) {
+	if strings.HasSuffix(included, "test.dsl") {
 		return "user \"Person\"", nil
+	}
+	if strings.HasSuffix(included, "file.dsl") {
+		return "a = workspace \"test\"", nil
 	}
 	return "", fmt.Errorf("failed to open " + included)
 }
@@ -29,21 +32,18 @@ func NewIncluder() Includer {
 	return &FSIncluder{}
 }
 
-func (f *FSIncluder) include(current, included string) (string, error) {
-	// Resolve the absolute path
-	baseDir := filepath.Dir(current)
-	absolutePath := filepath.Join(baseDir, included)
+func (f *FSIncluder) include(included string) (string, error) {
 	// Get file info for the given path
-	info, err := os.Stat(absolutePath)
+	info, err := os.Stat(included)
 	if err != nil {
 		return "", fmt.Errorf("failed to stat path: %w", err)
 	}
 
 	// Check if the path is a directory
 	if info.IsDir() {
-		return readDir(absolutePath)
+		return readDir(included)
 	} else {
-		return readFile(absolutePath)
+		return readFile(included)
 	}
 }
 

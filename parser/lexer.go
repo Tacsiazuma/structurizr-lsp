@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"unicode"
 )
@@ -47,6 +48,7 @@ func initLogger() {
 
 func Lexer(source string, content string, includer Includer) ([]Token, error) {
 	initLogger()
+	logger.Println(source)
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	scanner.Split(bufio.ScanRunes)
 	tokens := make([]Token, 0)
@@ -57,7 +59,6 @@ func Lexer(source string, content string, includer Includer) ([]Token, error) {
 	escaped := false
 	for scanner.Scan() {
 		text := scanner.Text()
-		logger.Println("Scanning:" + text)
 		switch state {
 		case "start":
 			if text == "\"" {
@@ -136,14 +137,20 @@ func checkIncludedFiles(tokens []Token, source string, in Includer) ([]Token, er
 	result := make([]Token, 0)
 	for i := 0; i < len(tokens); i++ {
 		if tokens[i].Content == "!include" && i+1 < len(tokens) {
-			path := tokens[i+1].Content
-			content, err := in.include(source, path)
-			included, err := Lexer(path, content, in)
+			path := tokens[i+1].Content // make it URI
+			fullpath := filepath.Join(filepath.Dir(source), path)
+			content, err := in.include(fullpath)
+			if err != nil {
+				logger.Printf("Error during include %s on absolute path %s cause: %s", path, fullpath, err)
+				return nil, err
+			}
+			included, err := Lexer(fullpath, content, in)
 			if err != nil {
 				return nil, err
 			}
 			result = append(result, tokens[i])
 			result = append(result, tokens[i+1])
+			result = append(result, Token{Type: TokenNewline, Content: "", Location: tokens[i].Location})
 			result = append(result, included[:len(included)-1]...)
 			i++
 		} else {

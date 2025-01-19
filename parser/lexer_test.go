@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -105,23 +107,34 @@ func TestLexer(t *testing.T) {
 			assert.Equal(t, "=", tokens[1].Content)
 		}
 	})
-	t.Run("should handle included tokens when found", func(t *testing.T) {
+	t.Run("should handle included tokens when found after a newline", func(t *testing.T) {
 		content := "!include test.dsl"
 		tokens, _ := Lexer(file, content, fake)
 		assert.Equal(t, "!include", tokens[0].Content)
 		assert.Equal(t, "test.dsl", tokens[1].Content)
-		assert.Equal(t, "user", tokens[2].Content)
-		assert.Equal(t, "Person", tokens[3].Content)
-		assert.Equal(t, TokenEof, tokens[4].Type)
+		assert.Equal(t, TokenNewline, tokens[2].Type)
+		assert.Equal(t, "user", tokens[3].Content)
+		assert.Equal(t, "Person", tokens[4].Content)
+		assert.Equal(t, TokenEof, tokens[5].Type)
 	})
 	t.Run("included tokens are located in different file", func(t *testing.T) {
 		content := "!include test.dsl"
 		tokens, _ := Lexer(file, content, fake)
 		assert.Equal(t, "first.dsl", tokens[0].Location.Source)
 		assert.Equal(t, "first.dsl", tokens[1].Location.Source)
-		assert.Equal(t, "test.dsl", tokens[2].Location.Source)
+		assert.Equal(t, "first.dsl", tokens[2].Location.Source)
 		assert.Equal(t, "test.dsl", tokens[3].Location.Source)
-		assert.Equal(t, "first.dsl", tokens[4].Location.Source)
+		assert.Equal(t, "test.dsl", tokens[4].Location.Source)
+		assert.Equal(t, "first.dsl", tokens[5].Location.Source)
+	})
+	t.Run("should use absolute path for the included location", func(t *testing.T) {
+		path, _ := os.Getwd()
+		file := filepath.Join(path, "first.dsl")
+		content := "!include test.dsl"
+		tokens, _ := Lexer(file, content, fake)
+		assert.Equal(t, filepath.Join(path, "first.dsl"), tokens[1].Location.Source)
+		assert.Equal(t, filepath.Join(path, "test.dsl"), tokens[3].Location.Source)
+		assert.Equal(t, filepath.Join(path, "test.dsl"), tokens[4].Location.Source)
 	})
 	t.Run("should handle relation sign when found", func(t *testing.T) {
 		content := "identifier -> other"

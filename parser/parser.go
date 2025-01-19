@@ -111,11 +111,15 @@ func (p *Parser) Parse() (*ASTNode, []*Diagnostic) {
 }
 
 func (p *Parser) parse(parent *ASTNode) {
+	if parent == nil {
+		return
+	}
 	for {
 		if !p.hasTokens() {
 			return
 		}
 		tokens := p.readLine()
+		logger.Println(tokens)
 		var current *ASTNode
 		for i, t := range tokens {
 			switch t.Type {
@@ -145,7 +149,7 @@ func (p *Parser) parse(parent *ASTNode) {
 				}
 				current.Attributes = append(current.Attributes, t.Content)
 			case TokenBraceOpen:
-				if i+1 != len(tokens) {
+				if i == 0 {
 					p.addDiagnostic(DiagnosticError, "Opening curly brace symbols ({) must be on the same line.", t.Location)
 					return
 				}
@@ -158,7 +162,6 @@ func (p *Parser) parse(parent *ASTNode) {
 				return
 			}
 		}
-		// return if we ended the end
 	}
 }
 
@@ -174,27 +177,6 @@ func (p *Parser) readLine() []*Token {
 	}
 }
 
-/**
-* This function consumes until it hits the end of the token stream or finds anything which is different
- */
-func (p *Parser) consume(types ...TokenType) {
-	for {
-		current := p.peek()
-		match := false
-		for _, v := range types {
-			if v == current.Type {
-				match = true
-			}
-		}
-		if match {
-			fmt.Println("Consuming ", current.Type)
-			p.nextToken()
-		} else {
-			break
-		}
-	}
-}
-
 func (p *Parser) nextToken() *Token {
 	next := &p.tokens[p.position]
 	p.position++
@@ -203,47 +185,6 @@ func (p *Parser) nextToken() *Token {
 
 func (p *Parser) hasTokens() bool {
 	return p.position < len(p.tokens)
-}
-func (p *Parser) peek() *Token {
-	current := &p.tokens[p.position]
-	return current
-}
-
-func (p *Parser) match(t TokenType) *Token {
-	current := p.peek()
-	if current.Type == t {
-		p.nextToken()
-		return current
-	} else {
-		return nil
-	}
-}
-
-func (p *Parser) addOptionalAttributes(node *ASTNode, t TokenType) {
-	token := p.match(t)
-	if token != nil {
-		node.Attributes = append(node.Attributes, token.Content)
-	}
-}
-
-func (p *Parser) expect(t TokenType) *Token {
-	current := p.peek()
-	if current.Type == t {
-		p.nextToken()
-		return current
-	} else {
-		p.addDiagnostic(DiagnosticError, fmt.Sprintf("Expected %s but found %s", t, current.Content), current.Location)
-		return nil
-	}
-}
-
-func (p *Parser) expectSequence(types ...TokenType) bool {
-	for _, t := range types {
-		if p.expect(t) == nil {
-			return false
-		}
-	}
-	return true
 }
 
 func (p *Parser) addDiagnostic(severity DiagnosticSeverity, message string, location Location) {

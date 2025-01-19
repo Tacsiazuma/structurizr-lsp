@@ -3,12 +3,21 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
+
 	"github.com/tacsiazuma/structurizr-lsp/parser"
 )
 
 func main() {
 	initLogger()
+	// Defer a function to recover from panics
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Printf("Recovered from panic: %v\n", r)
+		}
+	}()
 	for {
 		// Read message from client
 		msg, err := readMessage()
@@ -55,44 +64,39 @@ func main() {
 }
 
 func handleDidOpen(param DidOpenTextDocumentParams) {
-	p := parser.New(param.TextDocument.Text)
+	p := parser.New(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.TextDocument.Text, parser.NewIncluder())
 	_, diags := p.Parse()
-	diagnostics := make([]*Diagnostic, 0)
+	publishDiagnostics(diags)
+}
+
+func publishDiagnostics(diags []*parser.Diagnostic) {
+	diagnostics := make(map[string][]*Diagnostic, 0)
 	for _, diag := range diags {
-		diagnostics = append(diagnostics, &Diagnostic{
+		diagnostics[diag.Location.Source] = append(diagnostics[diag.Location.Source], &Diagnostic{
 			Message: diag.Message,
 			Range:   Range{Start: Position{Character: diag.Location.Pos, Line: diag.Location.Line}, End: Position{Character: diag.Location.Pos, Line: diag.Location.Line}}})
 	}
-	params := PublishDiagnosticsParams{
-		URI:         param.TextDocument.URI,
-		Diagnostics: diagnostics,
+	for k, v := range diagnostics {
+		uri := &url.URL{
+			Scheme: "file",
+			Path:   k,
+		}
+		params := PublishDiagnosticsParams{
+			URI:         uri.String(),
+			Diagnostics: v,
+		}
+		notification := Notification{
+			Method: "textDocument/publishDiagnostics",
+			Params: params,
+		}
+		writeNotification(notification)
 	}
-
-	notification := Notification{
-		Method: "textDocument/publishDiagnostics",
-		Params: params,
-	}
-	writeNotification(notification)
 }
 
 func handleDidChange(param DidChangeTextDocumentParams) {
-	p := parser.New(param.ContentChanges[0].Text)
+	p := parser.New(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.ContentChanges[0].Text, parser.NewIncluder())
 	_, diags := p.Parse()
-	diagnostics := make([]*Diagnostic, 0)
-	for _, diag := range diags {
-		diagnostics = append(diagnostics, &Diagnostic{
-			Message: diag.Message,
-			Range:   Range{Start: Position{Character: diag.Location.Pos, Line: diag.Location.Line}, End: Position{Character: diag.Location.Pos, Line: diag.Location.Line}}})
-	}
-	params := PublishDiagnosticsParams{
-		URI:         param.TextDocument.URI,
-		Diagnostics: diagnostics,
-	}
-	notification := Notification{
-		Method: "textDocument/publishDiagnostics",
-		Params: params,
-	}
-	writeNotification(notification)
+	publishDiagnostics(diags)
 }
 
 func handleInitialize(req Request) {
