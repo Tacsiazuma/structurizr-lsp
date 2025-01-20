@@ -12,6 +12,8 @@ type FSIncluder struct {
 }
 
 type Includer interface {
+    // Returns the content of a file or each .dsl file in a directory.
+    // Requires an absolute path.
 	include(included string) (string, error)
 }
 
