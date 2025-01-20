@@ -3,12 +3,22 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"runtime/debug"
 )
 
 var logger *log.Logger
+
+type Lsp struct {
+	rpc *Rpc
+}
+
+func From(input io.Reader, output io.Writer) *Lsp {
+	r := NewRpc(input, output)
+	return &Lsp{rpc: r}
+}
 
 func main() {
 	initLogger()
@@ -17,6 +27,7 @@ func main() {
 		fmt.Println(info.Main.Version)
 		return
 	}
+	lsp := From(os.Stdin, os.Stdout)
 	// Defer a function to recover from panics
 	defer func() {
 		if r := recover(); r != nil {
@@ -24,47 +35,55 @@ func main() {
 		}
 	}()
 	for {
-		// Read message from client
-		msg, err := readMessage()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to read message: %v\n", err)
-			continue
-		}
+		lsp.Handle()
+	}
+}
 
-		// Parse the JSON-RPC request
-		var req Request
-		if err := json.Unmarshal([]byte(msg), &req); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to parse JSON: %v\n", err)
-			continue
-		}
+func (l *Lsp) Handle() {
+	// Read message from client
+	msg, err := l.rpc.readMessage()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to read message: %v\n", err)
+		return
+	}
 
-		// Handle the request
-		switch req.Method {
-		case "initialize":
-			handleInitialize(req)
-		case "initialized": // notification does not require response
+	// Parse the JSON-RPC request
+	var req Request
+	if err := json.Unmarshal([]byte(msg), &req); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to parse JSON: %v\n", err)
+		return
+	}
+
+	// Handle the request
+	switch req.Method {
+	case "initialize":
+		l.handleInitialize(req)
+	case "initialized": // notification does not require response
+		break
+	case "textDocument/didSave": // notification does not require response
+		break
+	case "textDocument/completion": // not implemented yet
+		break
+	case "$/cancellation": // not implemented yet
+		break
+	case "textDocument/didChange":
+		var params DidChangeTextDocumentParams
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to parse 'didChange' params: %v\n", err)
 			break
-		case "textDocument/didSave": // notification does not require response
-			break
-		case "textDocument/didChange":
-			var params DidChangeTextDocumentParams
-			if err := json.Unmarshal(req.Params, &params); err != nil {
-				fmt.Printf("Failed to parse 'didChange' params: %v\n", err)
-				break
-			}
-			handleDidChange(params)
-		case "textDocument/didOpen":
-			var params DidOpenTextDocumentParams
-			if err := json.Unmarshal(req.Params, &params); err != nil {
-				fmt.Printf("Failed to parse 'didOpen' params: %v\n", err)
-				break
-			}
-			handleDidOpen(params)
-		case "shutdown":
-			handleShutdown(req)
-		default:
-			sendError(req.ID, -32601, "Method not found")
 		}
+		l.handleDidChange(params)
+	case "textDocument/didOpen":
+		var params DidOpenTextDocumentParams
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to parse 'didOpen' params: %v\n", err)
+			break
+		}
+		l.handleDidOpen(params)
+	case "shutdown":
+		l.handleShutdown(req)
+	default:
+		l.sendError(req.ID, -32601, "Method not found")
 	}
 }
 

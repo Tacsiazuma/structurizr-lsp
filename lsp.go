@@ -49,17 +49,17 @@ type ContentChange struct {
 	Text string `json:"text"`
 }
 
-func handleDidOpen(param DidOpenTextDocumentParams) {
+func (l *Lsp) handleDidOpen(param DidOpenTextDocumentParams) {
 	a := parser.NewAnalyser(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.TextDocument.Text)
 	_, _, diags := a.Analyse()
 	if len(diags) == 0 {
-		clearDiagnostics(param.TextDocument.URI)
+		l.clearDiagnostics(param.TextDocument.URI)
 	} else {
-		publishDiagnostics(diags)
+		l.publishDiagnostics(diags)
 	}
 }
 
-func publishDiagnostics(diags []*parser.Diagnostic) {
+func (l *Lsp) publishDiagnostics(diags []*parser.Diagnostic) {
 	diagnostics := make(map[string][]*Diagnostic, 0)
 	for _, diag := range diags {
 		diagnostics[diag.Location.Source] = append(diagnostics[diag.Location.Source], &Diagnostic{
@@ -79,21 +79,21 @@ func publishDiagnostics(diags []*parser.Diagnostic) {
 			Method: "textDocument/publishDiagnostics",
 			Params: params,
 		}
-		writeNotification(notification)
+		l.rpc.writeMessage(notification)
 	}
 }
 
-func handleDidChange(param DidChangeTextDocumentParams) {
+func (l *Lsp) handleDidChange(param DidChangeTextDocumentParams) {
 	p := parser.NewAnalyser(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.ContentChanges[0].Text)
 	_, _, diags := p.Analyse()
 	if len(diags) == 0 {
-		clearDiagnostics(param.TextDocument.URI)
+		l.clearDiagnostics(param.TextDocument.URI)
 	} else {
-		publishDiagnostics(diags)
+		l.publishDiagnostics(diags)
 	}
 }
 
-func clearDiagnostics(s string) {
+func (l *Lsp) clearDiagnostics(s string) {
 	params := PublishDiagnosticsParams{
 		URI:         s,
 		Diagnostics: make([]*Diagnostic, 0),
@@ -102,10 +102,10 @@ func clearDiagnostics(s string) {
 		Method: "textDocument/publishDiagnostics",
 		Params: params,
 	}
-	writeNotification(notification)
+	l.rpc.writeMessage(notification)
 }
 
-func handleInitialize(req Request) {
+func (l *Lsp) handleInitialize(req Request) {
 	// Respond with basic server capabilities
 	capabilities := map[string]interface{}{
 		"capabilities": map[string]interface{}{
@@ -120,24 +120,24 @@ func handleInitialize(req Request) {
 		ID:      req.ID,
 		Result:  capabilities,
 	}
-	if err := writeMessage(response); err != nil {
+	if err := l.rpc.writeMessage(response); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to send response: %v\n", err)
 	}
 }
 
-func handleShutdown(req Request) {
+func (l *Lsp) handleShutdown(req Request) {
 	response := Response{
 		Jsonrpc: "2.0",
 		ID:      req.ID,
 		Result:  nil,
 	}
-	if err := writeMessage(response); err != nil {
+	if err := l.rpc.writeMessage(response); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to send response: %v\n", err)
 	}
 	os.Exit(0)
 }
 
-func sendError(id int, code int, message string) {
+func (l *Lsp) sendError(id int, code int, message string) {
 	response := Response{
 		Jsonrpc: "2.0",
 		ID:      id,
@@ -146,7 +146,7 @@ func sendError(id int, code int, message string) {
 			Message: message,
 		},
 	}
-	if err := writeMessage(response); err != nil {
+	if err := l.rpc.writeMessage(response); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to send error response: %v\n", err)
 	}
 }

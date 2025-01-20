@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"os"
+	"io"
 	"strings"
 )
 
@@ -32,15 +32,22 @@ type Error struct {
 	Message string `json:"message"`
 }
 
+type Rpc struct {
+	input  *bufio.Reader
+	output *bufio.Writer
+}
+
+func NewRpc(input io.Reader, output io.Writer) *Rpc {
+	return &Rpc{input: bufio.NewReader(input), output: bufio.NewWriter(output)}
+}
 
 // Read a single LSP message from stdin.
-func readMessage() (string, error) {
-	reader := bufio.NewReader(os.Stdin)
+func (r *Rpc) readMessage() (string, error) {
 
 	// Read headers
 	var contentLength int
 	for {
-		line, err := reader.ReadString('\n')
+		line, err := r.input.ReadString('\n')
 		if err != nil {
 			return "", err
 		}
@@ -57,7 +64,7 @@ func readMessage() (string, error) {
 
 	// Read the body
 	body := make([]byte, contentLength)
-	_, err := reader.Read(body)
+	_, err := r.input.Read(body)
 	if err != nil {
 		return "", err
 	}
@@ -67,7 +74,7 @@ func readMessage() (string, error) {
 }
 
 // Write an LSP response to stdout.
-func writeMessage(response Response) error {
+func (r *Rpc) writeMessage(response interface{}) error {
 	jsonResponse, err := json.Marshal(response)
 	if err != nil {
 		return err
@@ -79,23 +86,7 @@ func writeMessage(response Response) error {
 		jsonResponse,
 	)
 	logger.Printf("Outgoing response: %s\n", jsonResponse)
-	_, err = os.Stdout.Write([]byte(content))
-	return err
-}
-
-// Write an LSP Notification to stdout.
-func writeNotification(notif Notification) error {
-	jsonResponse, err := json.Marshal(notif)
-	if err != nil {
-		return err
-	}
-
-	content := fmt.Sprintf(
-		"Content-Length: %d\r\n\r\n%s",
-		len(jsonResponse),
-		jsonResponse,
-	)
-	logger.Printf("Outgoing notification: %s\n", jsonResponse)
-	_, err = os.Stdout.Write([]byte(content))
+	_, err = r.output.Write([]byte(content))
+	r.output.Flush()
 	return err
 }
