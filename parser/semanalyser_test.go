@@ -15,18 +15,12 @@ func TestSemanticAnalyser(t *testing.T) {
 			assert.Equal(t, "File must contain a workspace", diags[0].Message)
 		}
 	})
-	t.Run("model required under workspace", func(t *testing.T) {
+	t.Run("model and views required under workspace", func(t *testing.T) {
 		sut := NewTestAnalyser("workspace")
 		_, _, diags := sut.Analyse()
-		if assert.Equal(t, 1, len(diags)) {
+		if assert.Equal(t, 2, len(diags)) {
 			assert.Equal(t, "Workspace must contain a model", diags[0].Message)
-		}
-	})
-	t.Run("views required under workspace", func(t *testing.T) {
-		sut := NewTestAnalyser("workspace {\nmodel {\n}\n}")
-		_, _, diags := sut.Analyse()
-		if assert.Equal(t, 1, len(diags)) {
-			assert.Equal(t, "Workspace must contain views", diags[0].Message)
+			assert.Equal(t, "Workspace must contain views", diags[1].Message)
 		}
 	})
 	t.Run("minimal workspace without errors", func(t *testing.T) {

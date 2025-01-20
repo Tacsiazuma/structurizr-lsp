@@ -35,15 +35,15 @@ type ASTNode struct {
 func NewNode(token *Token, t string) *ASTNode {
 	return &ASTNode{Token: *token, Type: t, Attributes: make([]*Token, 0), Children: make([]*ASTNode, 0)}
 }
-func displayTree(node *ASTNode, prefix string, isLast bool) {
+func displayTree(node *ASTNode, prefix string, isLast bool) string {
 	var connector string
+	var sb strings.Builder
 	if isLast {
 		connector = "└──"
 	} else {
 		connector = "├──"
 	}
-	fmt.Printf("%s%s %s (Attributes: %v)\n", prefix, connector, node.Type+" "+node.Value, node.Attributes)
-
+	sb.WriteString(fmt.Sprintf("%s%s %s (Attributes: %v)\n", prefix, connector, node.Type+" "+node.Content, node.Attributes))
 	newPrefix := prefix
 	if isLast {
 		newPrefix += "    "
@@ -52,8 +52,9 @@ func displayTree(node *ASTNode, prefix string, isLast bool) {
 	}
 
 	for i, child := range node.Children {
-		displayTree(child, newPrefix, i == len(node.Children)-1)
+		sb.WriteString(displayTree(child, newPrefix, i == len(node.Children)-1))
 	}
+	return sb.String()
 }
 func (n *ASTNode) ToString() string {
 	attributes := mapToString(n.Attributes)
@@ -109,7 +110,7 @@ type Diagnostic struct {
 
 func (p *Parser) Parse() (*ASTNode, []*Diagnostic) {
 	p.parse(p.root)
-	displayTree(p.root, "", false)
+	logger.Print(displayTree(p.root, "", false))
 	return p.root, p.diagnostics
 }
 

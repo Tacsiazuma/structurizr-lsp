@@ -1,12 +1,17 @@
 package parser
 
+import "sync"
+
 type SemanticAnalyser struct {
 	parser      *Parser
 	diagnostics []*Diagnostic
 	ws          *Workspace
+	mu          sync.Mutex
 }
 
 func (s *SemanticAnalyser) Analyse() (*Workspace, *ASTNode, []*Diagnostic) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	ast, diag := s.parser.Parse()
 	s.diagnostics = diag
 	s.walk(ast)
@@ -50,6 +55,7 @@ func (s *SemanticAnalyser) visitRoot(node *ASTNode) {
 }
 
 func (s *SemanticAnalyser) visitWorkspace(node *ASTNode) {
+    logger.Println("visitWorkspace")
 	s.ws = &Workspace{}
 	for _, c := range node.Children {
 		if c.Token.Content == "model" {
@@ -61,18 +67,18 @@ func (s *SemanticAnalyser) visitWorkspace(node *ASTNode) {
 	}
 	if s.ws.model == nil {
 		s.diagnostics = append(s.diagnostics, &Diagnostic{Message: "Workspace must contain a model", Severity: DiagnosticWarning, Location: node.Location})
-		return
 	}
 	if s.ws.views == nil {
 		s.diagnostics = append(s.diagnostics, &Diagnostic{Message: "Workspace must contain views", Severity: DiagnosticWarning, Location: node.Location})
-		return
 	}
 }
 
 func (s *SemanticAnalyser) visitViews(c *ASTNode) {
+    logger.Println("visitViews")
 	s.ws.views = &ViewSet{}
 }
 
 func (s *SemanticAnalyser) visitModel(node *ASTNode) {
+    logger.Println("visitModel")
 	s.ws.model = &Model{}
 }

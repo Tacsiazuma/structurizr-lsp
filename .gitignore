@@ -1,3 +1,4 @@
 *.log
 coverage.out
 *.dsl
+structurizr-lsp

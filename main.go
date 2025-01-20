@@ -3,13 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
+	"log"
 	"os"
 	"runtime/debug"
-	"strings"
-
-	"github.com/tacsiazuma/structurizr-lsp/parser"
 )
+
+var logger *log.Logger
 
 func main() {
 	initLogger()
@@ -43,22 +42,22 @@ func main() {
 		switch req.Method {
 		case "initialize":
 			handleInitialize(req)
-		case "initialized":
+		case "initialized": // notification does not require response
 			break
-		case "textDocument/didSave":
+		case "textDocument/didSave": // notification does not require response
 			break
 		case "textDocument/didChange":
 			var params DidChangeTextDocumentParams
 			if err := json.Unmarshal(req.Params, &params); err != nil {
-				fmt.Printf("Failed to parse 'didOpen' params: %v\n", err)
-				return
+				fmt.Printf("Failed to parse 'didChange' params: %v\n", err)
+				break
 			}
 			handleDidChange(params)
 		case "textDocument/didOpen":
 			var params DidOpenTextDocumentParams
 			if err := json.Unmarshal(req.Params, &params); err != nil {
 				fmt.Printf("Failed to parse 'didOpen' params: %v\n", err)
-				return
+				break
 			}
 			handleDidOpen(params)
 		case "shutdown":
@@ -69,84 +68,11 @@ func main() {
 	}
 }
 
-func handleDidOpen(param DidOpenTextDocumentParams) {
-	a := parser.NewAnalyser(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.TextDocument.Text)
-	_, _, diags := a.Analyse()
-	publishDiagnostics(diags)
-}
+func initLogger() {
+	logFile, err := os.OpenFile("lsp.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatalf("Failed to open log file: %v", err)
+	}
 
-func publishDiagnostics(diags []*parser.Diagnostic) {
-	diagnostics := make(map[string][]*Diagnostic, 0)
-	for _, diag := range diags {
-		diagnostics[diag.Location.Source] = append(diagnostics[diag.Location.Source], &Diagnostic{
-			Message: diag.Message,
-			Range:   Range{Start: Position{Character: diag.Location.Pos, Line: diag.Location.Line}, End: Position{Character: diag.Location.Pos, Line: diag.Location.Line}}})
-	}
-	for k, v := range diagnostics {
-		uri := &url.URL{
-			Scheme: "file",
-			Path:   k,
-		}
-		params := PublishDiagnosticsParams{
-			URI:         uri.String(),
-			Diagnostics: v,
-		}
-		notification := Notification{
-			Method: "textDocument/publishDiagnostics",
-			Params: params,
-		}
-		writeNotification(notification)
-	}
-}
-
-func handleDidChange(param DidChangeTextDocumentParams) {
-	p := parser.NewAnalyser(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.ContentChanges[0].Text)
-	_, _, diags := p.Analyse()
-	publishDiagnostics(diags)
-}
-
-func handleInitialize(req Request) {
-	// Respond with basic server capabilities
-	capabilities := map[string]interface{}{
-		"capabilities": map[string]interface{}{
-			"textDocumentSync": 1,
-			"completionProvider": map[string]bool{
-				"resolveProvider": true,
-			},
-		},
-	}
-	response := Response{
-		Jsonrpc: "2.0",
-		ID:      req.ID,
-		Result:  capabilities,
-	}
-	if err := writeMessage(response); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to send response: %v\n", err)
-	}
-}
-
-func handleShutdown(req Request) {
-	response := Response{
-		Jsonrpc: "2.0",
-		ID:      req.ID,
-		Result:  nil,
-	}
-	if err := writeMessage(response); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to send response: %v\n", err)
-	}
-	os.Exit(0)
-}
-
-func sendError(id int, code int, message string) {
-	response := Response{
-		Jsonrpc: "2.0",
-		ID:      id,
-		Error: &Error{
-			Code:    code,
-			Message: message,
-		},
-	}
-	if err := writeMessage(response); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to send error response: %v\n", err)
-	}
+	logger = log.New(logFile, "", log.LstdFlags|log.Lshortfile)
 }
