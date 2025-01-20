@@ -12,8 +12,8 @@ type FSIncluder struct {
 }
 
 type Includer interface {
-    // Returns the content of a file or each .dsl file in a directory.
-    // Requires an absolute path.
+	// Returns the content of a file or each .dsl file in a directory.
+	// Requires an absolute path.
 	include(included string) (string, error)
 }
 
@@ -27,7 +27,7 @@ func (f *FakeIncluder) include(included string) (string, error) {
 	if strings.HasSuffix(included, "file.dsl") {
 		return "a = workspace \"test\"", nil
 	}
-	return "", fmt.Errorf("failed to open " + included)
+	return "", fmt.Errorf("failed to open %s", included)
 }
 
 func NewIncluder() Includer {

@@ -38,7 +38,7 @@ const (
 var logger *log.Logger
 
 func initLogger() {
-	logFile, err := os.OpenFile("/home/tacsiazuma/work/structurizr-lsp/parser.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	logFile, err := os.OpenFile("parser.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatalf("Failed to open log file: %v", err)
 	}
@@ -48,7 +48,6 @@ func initLogger() {
 
 func Lexer(source string, content string, includer Includer) ([]Token, error) {
 	initLogger()
-	logger.Println(source)
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	scanner.Split(bufio.ScanRunes)
 	tokens := make([]Token, 0)
