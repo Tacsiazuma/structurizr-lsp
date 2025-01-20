@@ -2,3 +2,6 @@
 coverage.out
 *.dsl
 structurizr-lsp
+!parser/included.dsl
+!parser/included/first.dsl
+!parser/included/last.dsl
