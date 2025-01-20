@@ -25,6 +25,12 @@ func TestParser(t *testing.T) {
 		assert.Equal(t, 0, len(diagnostics))
 		assert.Equal(t, "(root  (=  (a  )(workspace  )))", ast.ToString())
 	})
+	t.Run("string properties are not reported as error", func(t *testing.T) {
+		sut := New(file, "\"key\" \"value\"", fake)
+		ast, diagnostics := sut.Parse()
+		assert.Equal(t, 0, len(diagnostics))
+		assert.Equal(t, "(root  (key (value) ))", ast.ToString())
+	})
 	t.Run("nested assignments are handled", func(t *testing.T) {
 		sut := New(file, "a = workspace {\n b = component\n}", fake)
 		ast, diagnostics := sut.Parse()

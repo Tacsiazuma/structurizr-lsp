@@ -148,10 +148,11 @@ func (p *Parser) parse(parent *ASTNode) {
 				continue
 			case TokenString:
 				if current == nil {
-					p.addDiagnostic(DiagnosticError, "Unexpected token, expected keyword got string", t.Location)
-					return
+					current = NewNode(t, string(t.Type))
+					parent.AddChild(current)
+				} else {
+					current.Attributes = append(current.Attributes, t)
 				}
-				current.Attributes = append(current.Attributes, t)
 			case TokenBraceOpen:
 				if i == 0 {
 					p.addDiagnostic(DiagnosticError, "Opening curly brace symbols ({) must be on the same line.", t.Location)
