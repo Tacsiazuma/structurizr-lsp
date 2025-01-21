@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -19,36 +20,29 @@ type TestCase struct {
 func TestRpc(t *testing.T) {
 	writer := &UnbufferedWriter{}
 	reader := &StringReader{}
+	sut := From(reader, writer)
+	t.Run("request return error if not initialized first", func(t *testing.T) {
+		testcase := ParseTestFile("shutdown", "unsuccessful_initialize")
+		reader.SetString(testcase.Input)
+		err := sut.Handle()
+		assert.Nil(t, err)
+		assert.Equal(t, testcase.Output, writer.written)
+	})
 	t.Run("initialize successful", func(t *testing.T) {
-		sut := From(reader, writer)
 		testcase := ParseTestFile("initialize", "successful_initialize")
 		reader.SetString(testcase.Input)
 		sut.Handle()
-		AssertStringsEqual(t, testcase.Output, writer.written)
+		assert.Equal(t, testcase.Output, writer.written)
 	})
-	t.Run("request return error if not initialized first", func(t *testing.T) {
-		sut := From(reader, writer)
-		testcase := ParseTestFile("shutdown", "unsuccessful_initialize")
-		reader.SetString(testcase.Input)
-		sut.Handle()
-		AssertStringsEqual(t, testcase.Output, writer.written)
+	t.Run("textdocument/didOpen", func(t *testing.T) {
+		t.Run("results in publish diagnostics", func(t *testing.T) {
+			testcase := ParseTestFile("textdocument_didopen", "publish_diagnostics")
+			reader.SetString(testcase.Input)
+			err := sut.Handle()
+			assert.Nil(t, err)
+			assert.Equal(t, testcase.Output, writer.written)
+		})
 	})
-}
-
-// StringsEqualIgnoreLineEndings checks if two strings are equal, ignoring line endings.
-func StringsEqualIgnoreLineEndings(s1, s2 string) bool {
-	// Normalize line endings to `\n` for both strings
-	normalize := func(s string) string {
-		return strings.TrimRight("\n", strings.ReplaceAll(s, "\r\n", "\n"))
-	}
-	return normalize(s1) == normalize(s2)
-}
-
-// AssertStringsEqual checks if two strings are equal, ignoring line endings, and fails the test if not.
-func AssertStringsEqual(t *testing.T, expected, actual string, msgAndArgs ...interface{}) {
-	if !StringsEqualIgnoreLineEndings(expected, actual) {
-		assert.Equal(t, expected, actual)
-	}
 }
 
 // UnbufferedWriter writes data directly to an underlying destination.
@@ -84,16 +78,18 @@ func (w *UnbufferedWriter) Write(p []byte) (int, error) {
 // ParseTestFile reads and parses a test file into a TestCase.
 func ParseTestFile(input, output string) *TestCase {
 	// Read the file contents.
-	i, err := os.ReadFile("fixture/input/" + input + ".txt")
+	i, err := os.ReadFile("fixture/input/" + input + ".json")
 	if err != nil {
 		log.Fatal(err)
 	}
-	o, err := os.ReadFile("fixture/output/" + output + ".txt")
+	o, err := os.ReadFile("fixture/output/" + output + ".json")
 	if err != nil {
 		log.Fatal(err)
 	}
+	// we need to trim output for later assertion
+	trimmedout := strings.TrimRight(string(o), "\n")
 	return &TestCase{
-		Input:  string(i),
-		Output: string(o),
+		Input:  fmt.Sprintf("Content-Length: %d\n\n%s", len(i), string(i)),
+		Output: fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(trimmedout), trimmedout),
 	}
 }

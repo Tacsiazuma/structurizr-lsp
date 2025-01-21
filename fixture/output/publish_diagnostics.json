@@ -1,0 +1,1 @@
+{"method":"textDocument/publishDiagnostics","params":{"uri":"file:///home/tacsiazuma/work/structurizr-lsp/test.dsl","diagnostics":[]}}

@@ -40,19 +40,17 @@ func main() {
 	}
 }
 
-func (l *Lsp) Handle() {
+func (l *Lsp) Handle() error {
 	// Read message from client
 	msg, err := l.rpc.readMessage()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to read message: %v\n", err)
-		return
+		return fmt.Errorf("Failed to read message: %v", err)
 	}
 
 	// Parse the JSON-RPC request
 	var req Request
 	if err := json.Unmarshal([]byte(msg), &req); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to parse JSON: %v\n", err)
-		return
+		return fmt.Errorf("Failed to parse JSON: %v", err)
 	}
 
 	// Handle the request
@@ -70,15 +68,13 @@ func (l *Lsp) Handle() {
 	case "textDocument/didChange":
 		var params DidChangeTextDocumentParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to parse 'didChange' params: %v\n", err)
-			break
+			return fmt.Errorf("Failed to parse 'didChange' params: %v", err)
 		}
 		l.handleDidChange(params)
 	case "textDocument/didOpen":
 		var params DidOpenTextDocumentParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to parse 'didOpen' params: %v\n", err)
-			break
+			return fmt.Errorf("Failed to parse 'didOpen' params: %v", err)
 		}
 		l.handleDidOpen(params)
 	case "shutdown":
@@ -90,6 +86,7 @@ func (l *Lsp) Handle() {
 	default:
 		l.sendError(req.ID, -32601, "Method not found")
 	}
+	return nil
 }
 
 func initLogger() {
