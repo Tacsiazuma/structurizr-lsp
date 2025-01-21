@@ -81,7 +81,7 @@ func (r *Rpc) writeMessage(response interface{}) error {
 	}
 
 	content := fmt.Sprintf(
-		"Content-Length: %d\n\n%s",
+		"Content-Length: %d\r\n\r\n%s",
 		len(jsonResponse),
 		jsonResponse,
 	)
