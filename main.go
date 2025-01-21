@@ -12,7 +12,8 @@ import (
 var logger *log.Logger
 
 type Lsp struct {
-	rpc *Rpc
+	initialized bool
+	rpc         *Rpc
 }
 
 func From(input io.Reader, output io.Writer) *Lsp {
@@ -81,7 +82,11 @@ func (l *Lsp) Handle() {
 		}
 		l.handleDidOpen(params)
 	case "shutdown":
-		l.handleShutdown(req)
+		if l.initialized {
+			l.handleShutdown(req)
+		} else {
+			l.sendError(req.ID, -32002, "Not initialized")
+		}
 	default:
 		l.sendError(req.ID, -32601, "Method not found")
 	}

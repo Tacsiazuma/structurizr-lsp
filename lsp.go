@@ -106,6 +106,7 @@ func (l *Lsp) clearDiagnostics(s string) {
 }
 
 func (l *Lsp) handleInitialize(req Request) {
+	l.initialized = true
 	// Respond with basic server capabilities
 	capabilities := map[string]interface{}{
 		"capabilities": map[string]interface{}{

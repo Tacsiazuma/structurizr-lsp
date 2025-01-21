@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -16,11 +17,18 @@ type TestCase struct {
 }
 
 func TestRpc(t *testing.T) {
-	t.Run("initialize", func(t *testing.T) {
-		writer := &UnbufferedWriter{}
-		reader := &StringReader{}
+	writer := &UnbufferedWriter{}
+	reader := &StringReader{}
+	t.Run("initialize successful", func(t *testing.T) {
 		sut := From(reader, writer)
-		testcase, _ := ParseTestFile("initialize.txt")
+		testcase := ParseTestFile("initialize", "successful_initialize")
+		reader.SetString(testcase.Input)
+		sut.Handle()
+		AssertStringsEqual(t, testcase.Output, writer.written)
+	})
+	t.Run("request return error if not initialized first", func(t *testing.T) {
+		sut := From(reader, writer)
+		testcase := ParseTestFile("shutdown", "unsuccessful_initialize")
 		reader.SetString(testcase.Input)
 		sut.Handle()
 		AssertStringsEqual(t, testcase.Output, writer.written)
@@ -31,7 +39,7 @@ func TestRpc(t *testing.T) {
 func StringsEqualIgnoreLineEndings(s1, s2 string) bool {
 	// Normalize line endings to `\n` for both strings
 	normalize := func(s string) string {
-		return strings.ReplaceAll(s, "\r\n", "\n")
+		return strings.TrimRight("\n", strings.ReplaceAll(s, "\r\n", "\n"))
 	}
 	return normalize(s1) == normalize(s2)
 }
@@ -39,7 +47,7 @@ func StringsEqualIgnoreLineEndings(s1, s2 string) bool {
 // AssertStringsEqual checks if two strings are equal, ignoring line endings, and fails the test if not.
 func AssertStringsEqual(t *testing.T, expected, actual string, msgAndArgs ...interface{}) {
 	if !StringsEqualIgnoreLineEndings(expected, actual) {
-		assert.Fail(t, "Strings are not equal, ignoring line endings", msgAndArgs...)
+		assert.Equal(t, expected, actual)
 	}
 }
 
@@ -74,25 +82,18 @@ func (w *UnbufferedWriter) Write(p []byte) (int, error) {
 }
 
 // ParseTestFile reads and parses a test file into a TestCase.
-func ParseTestFile(filepath string) (*TestCase, error) {
+func ParseTestFile(input, output string) *TestCase {
 	// Read the file contents.
-	data, err := os.ReadFile(filepath)
+	i, err := os.ReadFile("fixture/input/" + input + ".txt")
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
-
-	// Convert to a string and split by the markers.
-	content := string(data)
-	parts := strings.Split(content, "=== OUTPUT")
-	if len(parts) != 2 {
-		return nil, errors.New("test file must contain '=== OUTPUT' marker")
+	o, err := os.ReadFile("fixture/output/" + output + ".txt")
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	inputSection := strings.TrimSpace(strings.Split(parts[0], "=== INPUT")[1])
-	outputSection := strings.TrimSpace(parts[1])
-
 	return &TestCase{
-		Input:  inputSection,
-		Output: outputSection,
-	}, nil
+		Input:  string(i),
+		Output: string(o),
+	}
 }
