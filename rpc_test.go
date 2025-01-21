@@ -23,24 +23,8 @@ func TestRpc(t *testing.T) {
 		testcase, _ := ParseTestFile("initialize.txt")
 		reader.SetString(testcase.Input)
 		sut.Handle()
-		AssertStringsEqual(t, testcase.Output, writer.written)
+		assert.Equal(t, testcase.Output, writer.written)
 	})
-}
-
-// StringsEqualIgnoreLineEndings checks if two strings are equal, ignoring line endings.
-func StringsEqualIgnoreLineEndings(s1, s2 string) bool {
-	// Normalize line endings to `\n` for both strings
-	normalize := func(s string) string {
-		return strings.ReplaceAll(s, "\r\n", "\n")
-	}
-	return normalize(s1) == normalize(s2)
-}
-
-// AssertStringsEqual checks if two strings are equal, ignoring line endings, and fails the test if not.
-func AssertStringsEqual(t *testing.T, expected, actual string, msgAndArgs ...interface{}) {
-	if !StringsEqualIgnoreLineEndings(expected, actual) {
-		assert.Fail(t, "Strings are not equal, ignoring line endings", msgAndArgs...)
-	}
 }
 
 // UnbufferedWriter writes data directly to an underlying destination.
