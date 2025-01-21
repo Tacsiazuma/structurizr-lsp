@@ -16,7 +16,7 @@ func TestSemanticAnalyser(t *testing.T) {
 		}
 	})
 	t.Run("model and views required under workspace", func(t *testing.T) {
-		sut := NewTestAnalyser("workspace")
+		sut := NewTestAnalyser("workspace {\n}")
 		_, _, diags := sut.Analyse()
 		if assert.Equal(t, 2, len(diags)) {
 			assert.Equal(t, "Workspace must contain a model", diags[0].Message)

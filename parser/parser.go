@@ -26,10 +26,11 @@ type Workspace struct {
 
 type ASTNode struct {
 	Token
-	Type       string     // The type of the node (e.g., "workspace")
-	Value      string     // The value of the node (if applicable, e.g., "name" or "description")
-	Attributes []*Token   // Key-value pairs for additional attributes (e.g., {"name": "name", "description": "description"})
-	Children   []*ASTNode // Nested nodes (e.g., body of the workspace)
+	Parent     *ASTNode
+	Type       string
+	Value      string
+	Attributes []*Token
+	Children   []*ASTNode
 }
 
 func NewNode(token *Token, t string) *ASTNode {
@@ -68,6 +69,7 @@ func (n *ASTNode) ToString() string {
 }
 
 func (n *ASTNode) AddChild(c *ASTNode) {
+	c.Parent = n
 	n.Children = append(n.Children, c)
 }
 
@@ -120,6 +122,10 @@ func (p *Parser) parse(parent *ASTNode) {
 	}
 	for {
 		if !p.hasTokens() {
+			// if the first children is open then the last should be close
+			if len(parent.Children) > 0 && parent.Children[0].Token.Type == TokenBraceOpen && parent.Children[len(parent.Children)-1].Token.Type != TokenBraceClose {
+				p.addDiagnostic(DiagnosticError, "Unexpected EOF, expected }", parent.Children[len(parent.Children)-1].Location)
+			}
 			return
 		}
 		tokens := p.readLine()
@@ -158,15 +164,32 @@ func (p *Parser) parse(parent *ASTNode) {
 					p.addDiagnostic(DiagnosticError, "Opening curly brace symbols ({) must be on the same line.", t.Location)
 					return
 				}
+				brace := NewNode(t, string(t.Type))
+				current.AddChild(brace)
 				p.parse(current)
 				// one level down
 			case TokenBraceClose:
 				if i != 0 {
 					p.addDiagnostic(DiagnosticError, "Closing curly brace symbols (}) must be on a line of their own.", t.Location)
 				}
+				brace := NewNode(t, string(t.Type))
+				p.addClosingBraces(parent, brace)
 				return
 			}
 		}
+	}
+}
+
+func (p *Parser) addClosingBraces(node *ASTNode, brace *ASTNode) {
+	// recursively walk up the tree and add to a parent where braces are missing
+	if node == nil {
+		p.addDiagnostic(DiagnosticError, "Expected EOF, got }", brace.Token.Location)
+		return
+	}
+	if node.HasChild(TokenBraceOpen) {
+		node.AddChild(brace)
+	} else {
+		p.addClosingBraces(node.Parent, brace)
 	}
 }
 

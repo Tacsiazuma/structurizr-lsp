@@ -55,7 +55,7 @@ func (s *SemanticAnalyser) visitRoot(node *ASTNode) {
 }
 
 func (s *SemanticAnalyser) visitWorkspace(node *ASTNode) {
-    logger.Println("visitWorkspace")
+	logger.Println("visitWorkspace")
 	s.ws = &Workspace{}
 	for _, c := range node.Children {
 		if c.Token.Content == "model" {
@@ -72,13 +72,16 @@ func (s *SemanticAnalyser) visitWorkspace(node *ASTNode) {
 		s.diagnostics = append(s.diagnostics, &Diagnostic{Message: "Workspace must contain views", Severity: DiagnosticWarning, Location: node.Location})
 	}
 }
+func (s *SemanticAnalyser) addWarning(message string, node *ASTNode) {
+	s.diagnostics = append(s.diagnostics, &Diagnostic{Message: message, Severity: DiagnosticWarning, Location: node.Location})
+}
 
 func (s *SemanticAnalyser) visitViews(c *ASTNode) {
-    logger.Println("visitViews")
+	logger.Println("visitViews")
 	s.ws.views = &ViewSet{}
 }
 
 func (s *SemanticAnalyser) visitModel(node *ASTNode) {
-    logger.Println("visitModel")
+	logger.Println("visitModel")
 	s.ws.model = &Model{}
 }
