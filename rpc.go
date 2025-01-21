@@ -69,7 +69,7 @@ func (r *Rpc) readMessage() (string, error) {
 		return "", err
 	}
 
-	logger.Printf("Incoming request: %s\n", body)
+	// logger.Printf("Incoming request: %s\n", body)
 	return string(body), nil
 }
 
@@ -85,7 +85,7 @@ func (r *Rpc) writeMessage(response interface{}) error {
 		len(jsonResponse),
 		jsonResponse,
 	)
-	logger.Printf("Outgoing response: %s\n", jsonResponse)
+	// logger.Printf("Outgoing response: %s\n", jsonResponse)
 	_, err = r.output.Write([]byte(content))
 	r.output.Flush()
 	return err
