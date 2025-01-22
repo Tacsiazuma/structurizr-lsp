@@ -1,4 +1,4 @@
-package main
+package rpc
 
 import (
 	"bufio"
@@ -42,7 +42,7 @@ func NewRpc(input io.Reader, output io.Writer) *Rpc {
 }
 
 // Read a single LSP message from stdin.
-func (r *Rpc) readMessage() (string, error) {
+func (r *Rpc) ReadMessage() (string, error) {
 
 	// Read headers
 	var contentLength int
@@ -73,7 +73,7 @@ func (r *Rpc) readMessage() (string, error) {
 }
 
 // Write an LSP response to stdout.
-func (r *Rpc) writeMessage(response interface{}) error {
+func (r *Rpc) WriteMessage(response interface{}) error {
 	jsonResponse, err := json.Marshal(response)
 	if err != nil {
 		return err

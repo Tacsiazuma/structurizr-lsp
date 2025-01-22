@@ -1,4 +1,4 @@
-package main
+package lsp
 
 import (
 	"errors"
@@ -78,11 +78,11 @@ func (w *UnbufferedWriter) Write(p []byte) (int, error) {
 // ParseTestFile reads and parses a test file into a TestCase.
 func ParseTestFile(input, output string) *TestCase {
 	// Read the file contents.
-	i, err := os.ReadFile("fixture/input/" + input + ".json")
+	i, err := os.ReadFile("../fixture/input/" + input + ".json")
 	if err != nil {
 		log.Fatal(err)
 	}
-	o, err := os.ReadFile("fixture/output/" + output + ".json")
+	o, err := os.ReadFile("../fixture/output/" + output + ".json")
 	if err != nil {
 		log.Fatal(err)
 	}
