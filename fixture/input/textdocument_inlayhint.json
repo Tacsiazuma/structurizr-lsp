@@ -1,0 +1,20 @@
+{
+    "params": {
+        "range": {
+            "end": {
+                "character": 0,
+                "line": 8
+            },
+            "start": {
+                "character": 0,
+                "line": 0
+            }
+        },
+        "textDocument": {
+            "uri": "file:\/\/\/home\/tacsiazuma\/work\/structurizr-lsp\/test.dsl"
+        }
+    },
+    "id": 2,
+    "jsonrpc": "2.0",
+    "method": "textDocument\/inlayHint"
+}

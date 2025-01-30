@@ -24,15 +24,18 @@ type Location struct {
 type TokenType string
 
 const (
-	TokenKeyword    TokenType = "keyword"
-	TokenString     TokenType = "string"
-	TokenNewline    TokenType = "newline"
-	TokenBraceOpen  TokenType = "{"
-	TokenBraceClose TokenType = "}"
-	TokenEqual      TokenType = "="
-	TokenRelation   TokenType = "->"
-	TokenComment    TokenType = "comment"
-	TokenEof        TokenType = "EOF"
+	TokenKeyword     TokenType = "keyword"
+	TokenString      TokenType = "string"
+	TokenNewline     TokenType = "newline"
+	TokenBraceOpen   TokenType = "{"
+	TokenBraceClose  TokenType = "}"
+	TokenEqual       TokenType = "="
+	TokenRelation    TokenType = "->"
+	TokenComment     TokenType = "comment"
+	TokenEof         TokenType = "EOF"
+	TokenName        TokenType = "name"
+	TokenDescription TokenType = "description"
+	TokenTags        TokenType = "tags"
 )
 
 var logger *log.Logger

@@ -6,8 +6,9 @@
             "completionProvider": {
                 "resolveProvider": true
             },
+            "documentFormattingProvider": true,
             "inlayHintProvider": true,
-            "textDocumentSync": true
+            "textDocumentSync": 1
         }
     }
 }

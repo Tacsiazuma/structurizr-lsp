@@ -1,6 +1,7 @@
 package lsp
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,54 +14,20 @@ import (
 	"github.com/tacsiazuma/structurizr-lsp/rpc"
 )
 
-type Diagnostic struct {
-	Range   Range  `json:"range"`
-	Message string `json:"message"`
-}
-
-type Range struct {
-	Start Position `json:"start"`
-	End   Position `json:"end"`
-}
-
-type Position struct {
-	Line      int `json:"line"`
-	Character int `json:"character"`
-}
-
-type TextDocumentItem struct {
-	URI        string `json:"uri"`
-	LanguageID string `json:"languageId"`
-	Version    int    `json:"version"`
-	Text       string `json:"text"`
-}
-
-type PublishDiagnosticsParams struct {
-	URI         string        `json:"uri"`
-	Diagnostics []*Diagnostic `json:"diagnostics"`
-}
-
-type DidOpenTextDocumentParams struct {
-	TextDocument TextDocumentItem `json:"textDocument"`
-}
-
-type DidChangeTextDocumentParams struct {
-	TextDocument   TextDocumentItem `json:"textDocument"`
-	ContentChanges []ContentChange
-}
-
-type ContentChange struct {
-	Text string `json:"text"`
-}
-
 func (l *Lsp) handleDidOpen(param DidOpenTextDocumentParams) {
 	a := parser.NewAnalyser(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.TextDocument.Text)
-	_, _, diags := a.Analyse()
+	_, ast, diags := a.Analyse()
+	l.registerContent(param.TextDocument.URI, param.TextDocument.Text, ast)
 	if len(diags) == 0 {
 		l.clearDiagnostics(param.TextDocument.URI)
 	} else {
 		l.publishDiagnostics(diags)
 	}
+}
+
+func (l *Lsp) registerContent(uri, content string, ast *parser.ASTNode) {
+	l.content[uri] = Content{Text: content, Ast: ast}
+	l.logger.Println("Writing " + uri)
 }
 
 func (l *Lsp) publishDiagnostics(diags []*parser.Diagnostic) {
@@ -89,7 +56,8 @@ func (l *Lsp) publishDiagnostics(diags []*parser.Diagnostic) {
 
 func (l *Lsp) handleDidChange(param DidChangeTextDocumentParams) {
 	p := parser.NewAnalyser(strings.TrimPrefix(param.TextDocument.URI, "file://"), param.ContentChanges[0].Text)
-	_, _, diags := p.Analyse()
+	_, ast, diags := p.Analyse()
+	l.registerContent(param.TextDocument.URI, param.ContentChanges[0].Text, ast)
 	if len(diags) == 0 {
 		l.clearDiagnostics(param.TextDocument.URI)
 	} else {
@@ -114,8 +82,9 @@ func (l *Lsp) handleInitialize(req rpc.Request) {
 	// Respond with basic server capabilities
 	capabilities := map[string]interface{}{
 		"capabilities": map[string]interface{}{
-			"textDocumentSync": 1,
-            "inlayHintProvider" : true,
+			"textDocumentSync":           1,
+			"documentFormattingProvider": true,
+			"inlayHintProvider":          true,
 			"completionProvider": map[string]bool{
 				"resolveProvider": true,
 			},
@@ -141,6 +110,67 @@ func (l *Lsp) handleShutdown(req rpc.Request) {
 		fmt.Fprintf(os.Stderr, "Failed to send response: %v\n", err)
 	}
 	os.Exit(0)
+}
+
+func (l *Lsp) getContent(uri string) (*Content, error) {
+	content, ok := l.content[uri]
+	l.logger.Println("Getting " + uri)
+	if !ok {
+		return nil, fmt.Errorf("Content not found")
+	}
+	return &content, nil
+}
+
+func (l *Lsp) getOrUpdateContent(uri, text string) (*Content, error) {
+	if text != "" {
+		p := parser.NewAnalyser(strings.TrimPrefix(uri, "file://"), text)
+		_, ast, _ := p.Analyse()
+		l.registerContent(uri, text, ast)
+	}
+	content, err := l.getContent(uri)
+	return content, err
+}
+
+func (l *Lsp) handleInlayHint(id int, param InlayHintParams) {
+	content, err := l.getContent(param.TextDocument.URI)
+	if err != nil {
+		log.Fatal(err)
+	}
+	hints := l.findInlayHints(content.Ast, param.Range)
+	if len(hints) > 0 {
+		l.publishInlayHints(id, hints)
+	}
+}
+
+func (l *Lsp) findInlayHints(ast *parser.ASTNode, rng Range) []InlayHint {
+	hints := make([]InlayHint, 0)
+	for _, attribute := range ast.Attributes {
+		if attribute.Type == parser.TokenName {
+			hints = append(hints, InlayHint{
+				Label:    "name: ",
+				Position: Position{Line: attribute.Location.Line, Character: attribute.Location.Pos},
+			})
+		}
+		if attribute.Type == parser.TokenDescription {
+			hints = append(hints, InlayHint{
+				Label:    "description: ",
+				Position: Position{Line: attribute.Location.Line, Character: attribute.Location.Pos},
+			})
+		}
+	}
+	for _, child := range ast.Children {
+		hints = append(hints, l.findInlayHints(child, rng)...)
+	}
+	return hints
+}
+
+func (l *Lsp) publishInlayHints(id int, hints []InlayHint) {
+	response := rpc.Response{
+		Jsonrpc: "2.0",
+		ID:      id,
+		Result:  hints,
+	}
+	l.rpc.WriteMessage(response)
 }
 
 func (l *Lsp) sendError(id int, code int, message string) {
@@ -178,8 +208,20 @@ func (l *Lsp) Handle() error {
 		break
 	case "textDocument/didSave": // notification does not require response
 		break
+	case "textDocument/formatting": // notification does not require response
+		var params FormattingParams
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			return fmt.Errorf("Failed to parse 'inlayHint' params: %v", err)
+		}
+		l.handleFormatting(req.ID, params)
 	case "textDocument/completion": // not implemented yet
 		break
+	case "textDocument/inlayHint": // not implemented yet
+		var params InlayHintParams
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			return fmt.Errorf("Failed to parse 'inlayHint' params: %v", err)
+		}
+		l.handleInlayHint(req.ID, params)
 	case "$/cancellation": // not implemented yet
 		break
 	case "textDocument/didChange":
@@ -209,10 +251,74 @@ func (l *Lsp) Handle() error {
 type Lsp struct {
 	initialized bool
 	rpc         *rpc.Rpc
+	logger      *log.Logger
+	content     map[string]Content
+}
+
+type Content struct {
+	Text string
+	Ast  *parser.ASTNode
 }
 
 func From(input io.Reader, output io.Writer, logger *log.Logger) *Lsp {
 	r := rpc.NewRpc(input, output, logger)
-	return &Lsp{rpc: r}
+	return &Lsp{rpc: r, logger: logger, content: make(map[string]Content)}
 }
 
+func (l *Lsp) handleFormatting(id int, param FormattingParams) {
+	content, err := l.getOrUpdateContent(param.TextDocument.URI, param.TextDocument.Text)
+	if err != nil {
+		l.sendError(id, 1, "Cannot format without content")
+	}
+	input := content.Text
+	indentLevel := 0
+	var sb strings.Builder
+	scanner := bufio.NewScanner(strings.NewReader(input))
+	var edits []TextEdit
+	lineNum := 0
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			lineNum++
+			continue // Skip empty lines
+		}
+
+		var formattedLine string
+		if strings.HasSuffix(line, "{") {
+			formattedLine = strings.Repeat("    ", indentLevel) + line
+			indentLevel++
+		} else if strings.HasPrefix(line, "}") {
+			indentLevel--
+			if indentLevel < 0 {
+				indentLevel = 0 // Prevent negative indentation
+			}
+			formattedLine = strings.Repeat("    ", indentLevel) + line
+		} else {
+			formattedLine = strings.Repeat("    ", indentLevel) + line
+		}
+		sb.WriteString(formattedLine + "\n")
+		if formattedLine != line {
+			edits = append(edits, TextEdit{
+				Range: Range{
+					Start: Position{Line: lineNum, Character: 0},
+					End:   Position{Line: lineNum, Character: len(line)},
+				},
+				NewText: formattedLine,
+			})
+		}
+		lineNum++
+	}
+
+	if err := scanner.Err(); err != nil {
+		l.logger.Println("error reading input: " + err.Error())
+		return
+	}
+	l.registerContent(param.TextDocument.URI, sb.String(), content.Ast) // update the content after formatting
+	response := rpc.Response{
+		Jsonrpc: "2.0",
+		ID:      id,
+		Result:  edits,
+	}
+	l.rpc.WriteMessage(response)
+}

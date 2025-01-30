@@ -1,0 +1,22 @@
+{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": [
+        {
+            "position": {
+                "line": 0,
+                "character": 10
+            },
+            "label": "name: ",
+            "kind": 0
+        },
+        {
+            "position": {
+                "line": 0,
+                "character": 17
+            },
+            "label": "description: ",
+            "kind": 0
+        }
+    ]
+}

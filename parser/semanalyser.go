@@ -65,6 +65,7 @@ func (s *SemanticAnalyser) visitWorkspace(node *ASTNode) {
 			s.visitViews(c)
 		}
 	}
+	AugmentAttributes(node)
 	if s.ws.model == nil {
 		s.diagnostics = append(s.diagnostics, &Diagnostic{Message: "Workspace must contain a model", Severity: DiagnosticWarning, Location: node.Location})
 	}
@@ -72,6 +73,19 @@ func (s *SemanticAnalyser) visitWorkspace(node *ASTNode) {
 		s.diagnostics = append(s.diagnostics, &Diagnostic{Message: "Workspace must contain views", Severity: DiagnosticWarning, Location: node.Location})
 	}
 }
+
+func AugmentAttributes(node *ASTNode) {
+	if len(node.Attributes) > 0 && node.Attributes[0].Type == TokenString {
+		node.Attributes[0].Type = TokenName
+	}
+	if len(node.Attributes) > 1 && node.Attributes[1].Type == TokenString {
+		node.Attributes[1].Type = TokenDescription
+	}
+	if len(node.Attributes) > 2 && node.Attributes[2].Type == TokenString {
+		node.Attributes[2].Type = TokenTags
+	}
+}
+
 func (s *SemanticAnalyser) addWarning(message string, node *ASTNode) {
 	s.diagnostics = append(s.diagnostics, &Diagnostic{Message: message, Severity: DiagnosticWarning, Location: node.Location})
 }
@@ -83,5 +97,15 @@ func (s *SemanticAnalyser) visitViews(c *ASTNode) {
 
 func (s *SemanticAnalyser) visitModel(node *ASTNode) {
 	logger.Println("visitModel")
+	for _, c := range node.Children {
+		if c.Token.Content == "person" {
+			s.visitPerson(c)
+		}
+	}
 	s.ws.model = &Model{}
+}
+
+func (s *SemanticAnalyser) visitPerson(node *ASTNode) {
+	AugmentAttributes(node)
+	logger.Println("visitPerson")
 }
