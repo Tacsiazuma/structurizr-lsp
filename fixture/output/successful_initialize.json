@@ -1,1 +1,13 @@
-{"jsonrpc":"2.0","id":1,"result":{"capabilities":{"completionProvider":{"resolveProvider":true},"textDocumentSync":1}}}
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+        "capabilities": {
+            "completionProvider": {
+                "resolveProvider": true
+            },
+            "inlayHintProvider": true,
+            "textDocumentSync": true
+        }
+    }
+}

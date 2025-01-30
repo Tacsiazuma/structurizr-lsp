@@ -1,6 +1,7 @@
 package lsp
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -20,7 +21,9 @@ type TestCase struct {
 func TestRpc(t *testing.T) {
 	writer := &UnbufferedWriter{}
 	reader := &StringReader{}
-	sut := From(reader, writer)
+	logger := log.New(&bytes.Buffer{}, "", log.LstdFlags|log.Lshortfile)
+
+	sut := From(reader, writer, logger)
 	t.Run("request return error if not initialized first", func(t *testing.T) {
 		testcase := ParseTestFile("shutdown", "unsuccessful_initialize")
 		reader.SetString(testcase.Input)

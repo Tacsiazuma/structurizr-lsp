@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"strings"
 )
 
@@ -35,10 +36,11 @@ type Error struct {
 type Rpc struct {
 	input  *bufio.Reader
 	output *bufio.Writer
+	logger *log.Logger
 }
 
-func NewRpc(input io.Reader, output io.Writer) *Rpc {
-	return &Rpc{input: bufio.NewReader(input), output: bufio.NewWriter(output)}
+func NewRpc(input io.Reader, output io.Writer, logger *log.Logger) *Rpc {
+	return &Rpc{input: bufio.NewReader(input), output: bufio.NewWriter(output), logger: logger}
 }
 
 // Read a single LSP message from stdin.
@@ -69,6 +71,7 @@ func (r *Rpc) ReadMessage() (string, error) {
 		return "", err
 	}
 
+	r.logger.Printf("Input: %s\n", string(body))
 	return string(body), nil
 }
 
@@ -85,6 +88,7 @@ func (r *Rpc) WriteMessage(response interface{}) error {
 		jsonResponse,
 	)
 	_, err = r.output.Write([]byte(content))
+	r.logger.Printf("Output: %s\n", content)
 	r.output.Flush()
 	return err
 }

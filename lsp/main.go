@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/url"
 	"os"
 	"strings"
@@ -114,6 +115,7 @@ func (l *Lsp) handleInitialize(req rpc.Request) {
 	capabilities := map[string]interface{}{
 		"capabilities": map[string]interface{}{
 			"textDocumentSync": 1,
+            "inlayHintProvider" : true,
 			"completionProvider": map[string]bool{
 				"resolveProvider": true,
 			},
@@ -209,8 +211,8 @@ type Lsp struct {
 	rpc         *rpc.Rpc
 }
 
-func From(input io.Reader, output io.Writer) *Lsp {
-	r := rpc.NewRpc(input, output)
+func From(input io.Reader, output io.Writer, logger *log.Logger) *Lsp {
+	r := rpc.NewRpc(input, output, logger)
 	return &Lsp{rpc: r}
 }
 
