@@ -35,6 +35,16 @@ func TestSemanticAnalyser(t *testing.T) {
 		assert.Equal(t, TokenName, workspace.Attributes[0].Type)
 		assert.Equal(t, TokenDescription, workspace.Attributes[1].Type)
 	})
+	t.Run("augments properties", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace \"name\" \"description\" {\nmodel {\n}\nviews {\nproperties {\n\"key\" \"value\"\n}\n}\n}")
+		_, ast, _ := sut.Analyse()
+		ws := ast.Children[0]
+		views := ws.Children[2]
+		properties := views.Children[1]
+        property := properties.Children[1]
+		assert.Equal(t, TokenName, property.Token.Type)
+		assert.Equal(t, TokenValue, property.Attributes[0].Type)
+	})
 	t.Run("augments person attributes", func(t *testing.T) {
 		sut := NewTestAnalyser("workspace {\nmodel {\nperson \"name\" \"description\" \"tags\" \n}\nviews {\n}\n}")
 		_, ast, _ := sut.Analyse()

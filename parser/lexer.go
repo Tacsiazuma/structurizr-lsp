@@ -36,6 +36,7 @@ const (
 	TokenName        TokenType = "name"
 	TokenDescription TokenType = "description"
 	TokenTags        TokenType = "tags"
+	TokenValue       TokenType = "value"
 )
 
 var logger *log.Logger

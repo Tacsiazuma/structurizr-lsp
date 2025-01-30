@@ -90,9 +90,27 @@ func (s *SemanticAnalyser) addWarning(message string, node *ASTNode) {
 	s.diagnostics = append(s.diagnostics, &Diagnostic{Message: message, Severity: DiagnosticWarning, Location: node.Location})
 }
 
-func (s *SemanticAnalyser) visitViews(c *ASTNode) {
+func (s *SemanticAnalyser) visitViews(node *ASTNode) {
 	logger.Println("visitViews")
+	for _, c := range node.Children {
+		logger.Println(c.Token.Content)
+		if c.Token.Content == "properties" && c.Token.Type == TokenKeyword {
+			s.visitProperties(c)
+		}
+	}
 	s.ws.views = &ViewSet{}
+}
+
+func (s *SemanticAnalyser) visitProperties(node *ASTNode) {
+	logger.Println("visitProperties")
+	for _, c := range node.Children {
+		if c.Token.Type == TokenString {
+			c.Token.Type = TokenName
+			if len(c.Attributes) > 0 && c.Attributes[0].Type == TokenString {
+				c.Attributes[0].Type = TokenValue
+			}
+		}
+	}
 }
 
 func (s *SemanticAnalyser) visitModel(node *ASTNode) {

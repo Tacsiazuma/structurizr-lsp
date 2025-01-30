@@ -55,11 +55,13 @@ func (l *Lsp) Handle() error {
 	case "initialize":
 		l.handleInitialize(req)
 	case "initialized": // notification does not require response
-		break
+		return nil
 	case "textDocument/didSave": // notification does not require response
-		break
+		return nil
 	case "textDocument/didClose": // notification does not require response
-		break
+		return nil
+	case "$/cancellation": // not implemented yet
+		return nil
 	case "textDocument/formatting": // notification does not require response
 		var params FormattingParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
@@ -67,15 +69,13 @@ func (l *Lsp) Handle() error {
 		}
 		l.handleFormatting(req.ID, params)
 	case "textDocument/completion": // not implemented yet
-		break
+		return nil
 	case "textDocument/inlayHint":
 		var params InlayHintParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
 			return fmt.Errorf("Failed to parse 'inlayHint' params: %v", err)
 		}
 		l.handleInlayHint(req.ID, params)
-	case "$/cancellation": // not implemented yet
-		break
 	case "textDocument/didChange":
 		var params DidChangeTextDocumentParams
 		if err := json.Unmarshal(req.Params, &params); err != nil {
@@ -104,4 +104,3 @@ type Content struct {
 	Text string
 	Ast  *parser.ASTNode
 }
-

@@ -3,7 +3,7 @@
     "method": "textDocument\/didOpen",
     "params": {
         "textDocument": {
-            "text": "workspace \"Name\" \"Description\" {\n model {\n\n }\n views {\n\n }\n}\n",
+            "text": "workspace \"Name\" \"Description\" {\n model {\n\n }\n views {\nproperties {\n \"key\" \"value\" \n}\n }\n}\n",
             "version": 0,
             "uri": "file:\/\/\/home\/tacsiazuma\/work\/structurizr-lsp\/test.dsl",
             "languageId": "structurizr"

@@ -77,7 +77,7 @@ func TestRpc(t *testing.T) {
 }
 
 func LoadFile(reader *StringReader, writer *UnbufferedWriter, sut *Lsp) {
-	c := ParseTestFile("textdocument_didopen", "publish_diagnostics")
+	c := ParseTestFile("openfile_for_inlay_hints", "publish_diagnostics")
 	reader.SetString(c.Input)
 	err := sut.Handle()
 	if err != nil {

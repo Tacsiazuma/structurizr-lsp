@@ -17,6 +17,22 @@
             },
             "label": "description: ",
             "kind": 0
+        },
+        {
+            "position": {
+                "line": 6,
+                "character": 1
+            },
+            "label": "name: ",
+            "kind": 0
+        },
+        {
+            "position": {
+                "line": 6,
+                "character": 7
+            },
+            "label": "value: ",
+            "kind": 0
         }
     ]
 }
