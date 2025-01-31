@@ -60,7 +60,7 @@ func (r *Rpc) ReadMessage() (string, error) {
 		}
 
 		if strings.HasPrefix(line, "Content-Length:") {
-			fmt.Sscanf(line, "Content-Length: %d", &contentLength)
+			_, _ = fmt.Sscanf(line, "Content-Length: %d", &contentLength)
 		}
 	}
 

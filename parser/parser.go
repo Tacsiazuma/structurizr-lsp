@@ -20,8 +20,6 @@ func New(source string, content string, in Includer) *Parser {
 type Workspace struct {
 	model       *Model
 	views       *ViewSet
-	name        string
-	description string
 }
 
 type ASTNode struct {

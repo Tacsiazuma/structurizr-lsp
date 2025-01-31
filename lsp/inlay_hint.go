@@ -3,6 +3,7 @@ package lsp
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/tacsiazuma/structurizr-lsp/parser"
 	"github.com/tacsiazuma/structurizr-lsp/rpc"
@@ -55,5 +56,7 @@ func (l *Lsp) publishInlayHints(id int, hints []InlayHint) {
 		ID:      id,
 		Result:  hints,
 	}
-	l.rpc.WriteMessage(response)
+	if err := l.rpc.WriteMessage(response); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to send error response: %v\n", err)
+	}
 }

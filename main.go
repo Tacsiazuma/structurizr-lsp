@@ -24,7 +24,8 @@ func main() {
 		}
 	}()
 	for {
-		lsp.Handle()
+		err := lsp.Handle()
+		logger.Printf("Error %v\n", err)
 	}
 }
 

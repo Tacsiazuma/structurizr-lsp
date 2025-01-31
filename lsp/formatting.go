@@ -2,6 +2,8 @@ package lsp
 
 import (
 	"bufio"
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/tacsiazuma/structurizr-lsp/rpc"
@@ -62,5 +64,7 @@ func (l *Lsp) handleFormatting(id int, param FormattingParams) {
 		ID:      id,
 		Result:  edits,
 	}
-	l.rpc.WriteMessage(response)
+	if err := l.rpc.WriteMessage(response); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to send error response: %v\n", err)
+	}
 }

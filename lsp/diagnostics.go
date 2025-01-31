@@ -1,7 +1,9 @@
 package lsp
 
 import (
+	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/tacsiazuma/structurizr-lsp/parser"
 	"github.com/tacsiazuma/structurizr-lsp/rpc"
@@ -27,7 +29,9 @@ func (l *Lsp) publishDiagnostics(diags []*parser.Diagnostic) {
 			Method: "textDocument/publishDiagnostics",
 			Params: params,
 		}
-		l.rpc.WriteMessage(notification)
+		if err := l.rpc.WriteMessage(notification); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to send error response: %v\n", err)
+		}
 	}
 }
 
@@ -40,6 +44,7 @@ func (l *Lsp) clearDiagnostics(s string) {
 		Method: "textDocument/publishDiagnostics",
 		Params: params,
 	}
-	l.rpc.WriteMessage(notification)
+	if err := l.rpc.WriteMessage(notification); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to send error response: %v\n", err)
+	}
 }
-

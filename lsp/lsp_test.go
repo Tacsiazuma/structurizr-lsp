@@ -43,7 +43,8 @@ func TestRpc(t *testing.T) {
 		t.Run("initialize successful", func(t *testing.T) {
 			testcase := ParseTestFile("initialize", "successful_initialize")
 			reader.SetString(testcase.Input)
-			sut.Handle()
+			err := sut.Handle()
+			assert.Nil(t, err)
 			assert.Equal(t, testcase.Output, writer.written)
 		})
 	})

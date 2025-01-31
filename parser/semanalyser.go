@@ -27,15 +27,6 @@ func (s *SemanticAnalyser) walk(node *ASTNode) {
 	}
 }
 
-func contains(slice []TokenType, t TokenType) bool {
-	for _, item := range slice {
-		if item == t {
-			return true
-		}
-	}
-	return false
-}
-
 func NewAnalyser(sourceFile string, content string) *SemanticAnalyser {
 	p := New(sourceFile, content, NewIncluder())
 	return &SemanticAnalyser{parser: p}
@@ -49,8 +40,7 @@ func (s *SemanticAnalyser) visitRoot(node *ASTNode) {
 		}
 	}
 	if s.ws == nil {
-		s.diagnostics = append(s.diagnostics, &Diagnostic{Message: "File must contain a workspace", Severity: DiagnosticWarning, Location: node.Location})
-		return
+		s.addWarning("File must contain a workspace", node)
 	}
 }
 
@@ -67,10 +57,10 @@ func (s *SemanticAnalyser) visitWorkspace(node *ASTNode) {
 	}
 	AugmentAttributes(node)
 	if s.ws.model == nil {
-		s.diagnostics = append(s.diagnostics, &Diagnostic{Message: "Workspace must contain a model", Severity: DiagnosticWarning, Location: node.Location})
+		s.addWarning("Workspace must contain a model", node)
 	}
 	if s.ws.views == nil {
-		s.diagnostics = append(s.diagnostics, &Diagnostic{Message: "Workspace must contain views", Severity: DiagnosticWarning, Location: node.Location})
+		s.addWarning("Workspace must contain views", node)
 	}
 }
 
