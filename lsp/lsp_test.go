@@ -61,6 +61,20 @@ func TestRpc(t *testing.T) {
 			assert.Equal(t, testcase.Output, writer.written)
 		})
 	})
+	t.Run("textdocument/formatting", func(t *testing.T) {
+		writer := &UnbufferedWriter{}
+		reader := &StringReader{}
+
+		sut := From(reader, writer, logger)
+		t.Run("results in changes in text", func(t *testing.T) {
+			LoadFile(reader, writer, sut)
+			testcase := ParseTestFile("textdocument_format", "textdocument_format")
+			reader.SetString(testcase.Input)
+			err := sut.Handle()
+			assert.Nil(t, err)
+			assert.Equal(t, testcase.Output, writer.written)
+		})
+	})
 	t.Run("textdocument/inlayHint", func(t *testing.T) {
 		writer := &UnbufferedWriter{}
 		reader := &StringReader{}

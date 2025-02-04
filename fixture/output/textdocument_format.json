@@ -1,0 +1,97 @@
+{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": [
+        {
+            "range": {
+                "start": {
+                    "line": 1,
+                    "character": 0
+                },
+                "end": {
+                    "line": 1,
+                    "character": 11
+                }
+            },
+            "newText": "    model {"
+        },
+        {
+            "range": {
+                "start": {
+                    "line": 3,
+                    "character": 0
+                },
+                "end": {
+                    "line": 3,
+                    "character": 5
+                }
+            },
+            "newText": "    }"
+        },
+        {
+            "range": {
+                "start": {
+                    "line": 4,
+                    "character": 0
+                },
+                "end": {
+                    "line": 4,
+                    "character": 11
+                }
+            },
+            "newText": "    views {"
+        },
+        {
+            "range": {
+                "start": {
+                    "line": 5,
+                    "character": 0
+                },
+                "end": {
+                    "line": 5,
+                    "character": 20
+                }
+            },
+            "newText": "        properties {"
+        },
+        {
+            "range": {
+                "start": {
+                    "line": 6,
+                    "character": 0
+                },
+                "end": {
+                    "line": 6,
+                    "character": 25
+                }
+            },
+            "newText": "            \"key\" \"value\""
+        },
+        {
+            "range": {
+                "start": {
+                    "line": 7,
+                    "character": 0
+                },
+                "end": {
+                    "line": 7,
+                    "character": 9
+                }
+            },
+            "newText": "        }"
+        },
+        {
+            "range": {
+                "start": {
+                    "line": 8,
+                    "character": 0
+                },
+                "end": {
+                    "line": 8,
+                    "character": 5
+                }
+            },
+            "newText": "    }"
+        }
+    ]
+}

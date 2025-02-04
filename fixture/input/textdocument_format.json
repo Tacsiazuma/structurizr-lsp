@@ -1,0 +1,14 @@
+{
+    "params": {
+        "textDocument": {
+            "uri": "file:\/\/\/home\/tacsiazuma\/work\/structurizr-lsp\/test.dsl"
+        },
+        "options": {
+            "tabSize": 4,
+            "insertSpaces": true
+        }
+    },
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "textDocument\/formatting"
+}
