@@ -22,7 +22,8 @@ func (l *Lsp) handleFormatting(id int, param FormattingParams) {
 	lineNum := 0
 
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+        originalLine := scanner.Text()
+		line := strings.TrimSpace(originalLine)
 		if line == "" {
 			lineNum++
 			continue // Skip empty lines
@@ -41,12 +42,13 @@ func (l *Lsp) handleFormatting(id int, param FormattingParams) {
 		} else {
 			formattedLine = strings.Repeat("    ", indentLevel) + line
 		}
+
 		sb.WriteString(formattedLine + "\n")
 		if formattedLine != line {
 			edits = append(edits, TextEdit{
 				Range: Range{
 					Start: Position{Line: lineNum, Character: 0},
-					End:   Position{Line: lineNum, Character: len(line)},
+					End:   Position{Line: lineNum, Character: max(len(formattedLine), len(originalLine))},
 				},
 				NewText: formattedLine,
 			})
