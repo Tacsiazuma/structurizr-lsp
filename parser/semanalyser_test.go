@@ -28,6 +28,74 @@ func TestSemanticAnalyser(t *testing.T) {
 		_, _, diags := sut.Analyse()
 		assert.Equal(t, 0, len(diags))
 	})
+	t.Run("name allowed under the workspace", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace {\nname \"workspace\"\nmodel {\n}\nviews {\n}\n}")
+		ws, _, diags := sut.Analyse()
+		assert.Equal(t, 0, len(diags))
+		assert.Equal(t, "workspace", ws.Name)
+	})
+	t.Run("description allowed under the workspace", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace {\ndescription \"workspace\"\nmodel {\n}\nviews {\n}\n}")
+		ws, _, diags := sut.Analyse()
+		assert.Equal(t, 0, len(diags))
+		assert.Equal(t, "workspace", ws.Description)
+	})
+	t.Run("!identifiers can be flat under the workspace", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace {\n!identifiers flat\nmodel {\n}\nviews {\n}\n}")
+		ws, _, diags := sut.Analyse()
+		assert.Equal(t, 0, len(diags))
+		assert.Equal(t, "flat", ws.Identifiers)
+	})
+	t.Run("!identifiers can be hierarchical under the workspace", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace {\n!identifiers hierarchical\nmodel {\n}\nviews {\n}\n}")
+		ws, _, diags := sut.Analyse()
+		assert.Equal(t, 0, len(diags))
+		assert.Equal(t, "hierarchical", ws.Identifiers)
+	})
+	t.Run("!identifiers cannot have arbitrary value under the workspace", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace {\n!identifiers arbitrary\nmodel {\n}\nviews {\n}\n}")
+		_, _, diags := sut.Analyse()
+		assert.Equal(t, 1, len(diags))
+		assert.Equal(t, "Invalid option, possible values [flat hierarchical]", diags[0].Message)
+	})
+	t.Run("properties can be under the workspace", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace {\nproperties {\n\"key\" \"value\"\n}\nmodel {\n}\nviews {\n}\n}")
+		ws, _, diags := sut.Analyse()
+		assert.Equal(t, 0, len(diags))
+		if assert.NotNil(t, ws.Properties) {
+			assert.Equal(t, "value", ws.Properties["key"])
+		}
+	})
+	t.Run("!docs can be under the workspace", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace {\n!docs some/path com.example.ClassName\nmodel {\n}\nviews {\n}\n}")
+		ws, _, diags := sut.Analyse()
+		assert.Equal(t, 0, len(diags))
+		if assert.NotNil(t, ws.Docs) {
+			assert.Equal(t, "some/path", ws.Docs.Path)
+			assert.Equal(t, "com.example.ClassName", ws.Docs.Fqcn)
+		}
+	})
+	t.Run("!adrs can be under the workspace", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace {\n!adrs some/path com.example.ClassName\nmodel {\n}\nviews {\n}\n}")
+		ws, _, diags := sut.Analyse()
+		assert.Equal(t, 0, len(diags))
+		if assert.NotNil(t, ws.Adrs) {
+			assert.Equal(t, "some/path", ws.Adrs.Path)
+			assert.Equal(t, "com.example.ClassName", ws.Adrs.Fqcn)
+		}
+	})
+	t.Run("configuration can be under the workspace", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace {\nconfiguration {\n}\nmodel {\n}\nviews {\n}\n}")
+		ws, _, diags := sut.Analyse()
+		assert.Equal(t, 0, len(diags))
+		assert.NotNil(t, ws.Configuration)
+	})
+	t.Run("unexpected children cause warnings under the workspace", func(t *testing.T) {
+		sut := NewTestAnalyser("workspace {\nunexpected {\n}\nmodel {\n}\nviews {\n}\n}")
+		_, _, diags := sut.Analyse()
+		assert.Equal(t, 1, len(diags))
+        assert.Equal(t, "Unexpected children: unexpected", diags[0].Message)
+	})
 	t.Run("augments workspace attributes", func(t *testing.T) {
 		sut := NewTestAnalyser("workspace \"name\" \"description\" {\nmodel {\n}\nviews {\n}\n}")
 		_, ast, _ := sut.Analyse()
@@ -41,7 +109,7 @@ func TestSemanticAnalyser(t *testing.T) {
 		ws := ast.Children[0]
 		views := ws.Children[2]
 		properties := views.Children[1]
-        property := properties.Children[1]
+		property := properties.Children[1]
 		assert.Equal(t, TokenName, property.Token.Type)
 		assert.Equal(t, TokenValue, property.Attributes[0].Type)
 	})

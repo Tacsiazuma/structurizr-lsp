@@ -1,6 +1,9 @@
 package parser
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type SemanticAnalyser struct {
 	parser      *Parser
@@ -48,11 +51,28 @@ func (s *SemanticAnalyser) visitWorkspace(node *ASTNode) {
 	logger.Println("visitWorkspace")
 	s.ws = &Workspace{}
 	for _, c := range node.Children {
-		if c.Token.Content == "model" {
+		if isKeyWordWithName(c, "model") {
 			s.visitModel(c)
-		}
-		if c.Token.Content == "views" {
+		} else if isKeyWordWithName(c, "views") {
 			s.visitViews(c)
+		} else if isKeyWordWithName(c, "name") {
+			s.ws.Name = s.visitAttribute(c)
+		} else if isKeyWordWithName(c, "properties") {
+			s.ws.Properties = s.visitProperties(c)
+		} else if isKeyWordWithName(c, "description") {
+			s.ws.Description = s.visitAttribute(c)
+		} else if isKeyWordWithName(c, "!identifiers") {
+			s.ws.Identifiers = s.visitOptionWithPossibleValues(c, "flat", "hierarchical")
+		} else if isKeyWordWithName(c, "!docs") {
+			s.ws.Docs = s.visitDocs(c)
+		} else if isKeyWordWithName(c, "!adrs") {
+			s.ws.Adrs = s.visitAdrs(c)
+		} else if isKeyWordWithName(c, "configuration") {
+			s.ws.Configuration = s.visitConfiguration(c)
+		} else if isBraces(c) {
+			continue
+		} else {
+			s.addWarning("Unexpected children: "+c.Token.Content, c)
 		}
 	}
 	AugmentAttributes(node)
@@ -62,6 +82,58 @@ func (s *SemanticAnalyser) visitWorkspace(node *ASTNode) {
 	if s.ws.views == nil {
 		s.addWarning("Workspace must contain views", node)
 	}
+}
+
+func isBraces(node *ASTNode) bool {
+	return node.Token.Type == TokenBraceClose || TokenBraceOpen == node.Token.Type
+}
+
+func (s *SemanticAnalyser) visitDocs(node *ASTNode) *Documentation {
+	docs := &Documentation{}
+	if len(node.Attributes) > 0 && node.Attributes[0].Type == TokenKeyword {
+		docs.Path = node.Attributes[0].Content
+	}
+	if len(node.Attributes) > 1 && node.Attributes[1].Type == TokenKeyword {
+		docs.Fqcn = node.Attributes[1].Content
+	}
+	return docs
+}
+
+func (s *SemanticAnalyser) visitAdrs(node *ASTNode) *ADR {
+	adrs := &ADR{}
+	if len(node.Attributes) > 0 && node.Attributes[0].Type == TokenKeyword {
+		adrs.Path = node.Attributes[0].Content
+	}
+	if len(node.Attributes) > 1 && node.Attributes[1].Type == TokenKeyword {
+		adrs.Fqcn = node.Attributes[1].Content
+	}
+	return adrs
+}
+
+func isKeyWordWithName(node *ASTNode, name string) bool {
+	if node.Token.Type == TokenKeyword && node.Token.Content == name {
+		return true
+	}
+	return false
+}
+
+func (s *SemanticAnalyser) visitOptionWithPossibleValues(node *ASTNode, possibleValues ...string) string {
+	if len(node.Attributes) > 0 && node.Attributes[0].Type == TokenKeyword {
+		for _, v := range possibleValues {
+			if v == node.Attributes[0].Content {
+				return v
+			}
+		}
+	}
+	s.addWarning(fmt.Sprintf("Invalid option, possible values %s", possibleValues), node)
+	return ""
+}
+
+func (s *SemanticAnalyser) visitAttribute(node *ASTNode) string {
+	if len(node.Attributes) > 0 && node.Attributes[0].Type == TokenString {
+		return node.Attributes[0].Content
+	}
+	return ""
 }
 
 func AugmentAttributes(node *ASTNode) {
@@ -91,29 +163,38 @@ func (s *SemanticAnalyser) visitViews(node *ASTNode) {
 	s.ws.views = &ViewSet{}
 }
 
-func (s *SemanticAnalyser) visitProperties(node *ASTNode) {
+func (s *SemanticAnalyser) visitProperties(node *ASTNode) map[string]string {
 	logger.Println("visitProperties")
+	props := make(map[string]string)
 	for _, c := range node.Children {
 		if c.Token.Type == TokenString {
 			c.Token.Type = TokenName
 			if len(c.Attributes) > 0 && c.Attributes[0].Type == TokenString {
 				c.Attributes[0].Type = TokenValue
+				props[c.Token.Content] = c.Attributes[0].Content
 			}
 		}
 	}
+	return props
 }
 
 func (s *SemanticAnalyser) visitModel(node *ASTNode) {
 	logger.Println("visitModel")
+	s.ws.model = &Model{}
 	for _, c := range node.Children {
 		if c.Token.Content == "person" {
 			s.visitPerson(c)
 		}
 	}
-	s.ws.model = &Model{}
 }
 
+// Visits a person node
 func (s *SemanticAnalyser) visitPerson(node *ASTNode) {
 	AugmentAttributes(node)
 	logger.Println("visitPerson")
+}
+
+// Visits a person node
+func (s *SemanticAnalyser) visitConfiguration(node *ASTNode) *Configuration {
+	return &Configuration{}
 }
