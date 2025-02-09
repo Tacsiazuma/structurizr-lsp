@@ -187,6 +187,19 @@ func TestSemanticAnalyser(t *testing.T) {
 				}
 			})
 		})
+		t.Run("properties allowed", func(t *testing.T) {
+			sut := NewTestAnalyser("workspace {\nconfiguration {\nproperties {\n\"key\" \"value\"\n} \n}\nmodel {\n}\nviews {\n}\n}")
+			ws, _, diags := sut.Analyse()
+			if assert.Equal(t, 0, len(diags)) && assert.NotNil(t, ws.Configuration.Properties) {
+				assert.Equal(t, "value", ws.Configuration.Properties["key"])
+			}
+		})
+		t.Run("unexpected children cause warnings", func(t *testing.T) {
+			sut := NewTestAnalyser("workspace {\nconfiguration {\nunexpected value \n}\nmodel {\n}\nviews {\n}\n}")
+			_, _, diags := sut.Analyse()
+			assert.Equal(t, 1, len(diags))
+			assert.Equal(t, "Unexpected children: unexpected", diags[0].Message)
+		})
 	})
 	t.Run("augments properties", func(t *testing.T) {
 		sut := NewTestAnalyser("workspace \"name\" \"description\" {\nmodel {\n}\nviews {\nproperties {\n\"key\" \"value\"\n}\n}\n}")

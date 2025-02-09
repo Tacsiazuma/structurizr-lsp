@@ -204,6 +204,12 @@ func (s *SemanticAnalyser) visitConfiguration(node *ASTNode) *Configuration {
 			config.Visibility = s.visitOptionWithPossibleValues(c, "private", "public")
 		} else if isKeyWordWithName(c, "users") {
 			config.Users = s.visitUsers(c)
+		} else if isKeyWordWithName(c, "properties") {
+			config.Properties = s.visitProperties(c)
+		} else if isBraces(c) {
+			continue
+		} else {
+			s.addWarning("Unexpected children: "+c.Token.Content, c)
 		}
 	}
 	return config

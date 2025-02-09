@@ -33,6 +33,7 @@ type Configuration struct {
 	Scope      string
 	Visibility string
 	Users      map[string]string
+	Properties map[string]string
 }
 
 type Documentation struct {
