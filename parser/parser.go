@@ -29,7 +29,11 @@ type Workspace struct {
 	views         *ViewSet
 }
 
-type Configuration struct{}
+type Configuration struct {
+	Scope      string
+	Visibility string
+	Users      map[string]string
+}
 
 type Documentation struct {
 	Path string

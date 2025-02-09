@@ -196,5 +196,25 @@ func (s *SemanticAnalyser) visitPerson(node *ASTNode) {
 
 // Visits a person node
 func (s *SemanticAnalyser) visitConfiguration(node *ASTNode) *Configuration {
-	return &Configuration{}
+	config := &Configuration{}
+	for _, c := range node.Children {
+		if isKeyWordWithName(c, "scope") {
+			config.Scope = s.visitOptionWithPossibleValues(c, "landscape", "softwaresystem", "none")
+		} else if isKeyWordWithName(c, "visibility") {
+			config.Visibility = s.visitOptionWithPossibleValues(c, "private", "public")
+		} else if isKeyWordWithName(c, "users") {
+			config.Users = s.visitUsers(c)
+		}
+	}
+	return config
+}
+
+func (s *SemanticAnalyser) visitUsers(node *ASTNode) map[string]string {
+	props := make(map[string]string)
+	for _, c := range node.Children {
+		if c.Token.Type == TokenKeyword {
+			props[c.Token.Content] = s.visitOptionWithPossibleValues(c, "write", "read")
+		}
+	}
+	return props
 }
