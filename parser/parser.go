@@ -18,8 +18,32 @@ func New(source string, content string, in Includer) *Parser {
 }
 
 type Workspace struct {
-	model       *Model
-	views       *ViewSet
+	Name          string
+	Properties    map[string]string
+	Identifiers   string
+	Docs          *Documentation
+	Adrs          *ADR
+	Description   string
+	Configuration *Configuration
+	model         *Model
+	views         *ViewSet
+}
+
+type Configuration struct {
+	Scope      string
+	Visibility string
+	Users      map[string]string
+	Properties map[string]string
+}
+
+type Documentation struct {
+	Path string
+	Fqcn string
+}
+
+type ADR struct {
+	Path string
+	Fqcn string
 }
 
 type ASTNode struct {

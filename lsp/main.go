@@ -60,7 +60,7 @@ func (l *Lsp) Handle() error {
 		return nil
 	case "textDocument/didClose": // notification does not require response
 		return nil
-	case "$/cancellation": // not implemented yet
+	case "$/cancelRequest": // not implemented yet
 		return nil
 	case "textDocument/formatting": // notification does not require response
 		var params FormattingParams
