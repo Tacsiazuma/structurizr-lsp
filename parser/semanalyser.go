@@ -76,7 +76,7 @@ func (s *SemanticAnalyser) visitWorkspace(node *ASTNode) {
 		}
 	}
 	AugmentAttributes(node)
-	if s.ws.model == nil {
+	if s.ws.Model == nil {
 		s.addWarning("Workspace must contain a model", node)
 	}
 	if s.ws.views == nil {
@@ -180,18 +180,41 @@ func (s *SemanticAnalyser) visitProperties(node *ASTNode) map[string]string {
 
 func (s *SemanticAnalyser) visitModel(node *ASTNode) {
 	logger.Println("visitModel")
-	s.ws.model = &Model{}
+	model := &Model{People: make(map[string]*Person), Groups: make(map[string]*Group)}
 	for _, c := range node.Children {
 		if c.Token.Content == "person" {
-			s.visitPerson(c)
+			model.People[fmt.Sprintf("%p", &c)] = s.visitPerson(c)
+		} else if isKeyWordWithName(c, "!identifiers") {
+			model.Identifiers = s.visitOptionWithPossibleValues(c, "flat", "hierarchical")
+		} else if isAssignment(c, "person") {
+			id := s.getIdentifier(c)
+			model.People[id] = s.visitPerson(c.Children[1])
+		} else if isKeyWordWithName(c, "group") {
+			model.Groups[fmt.Sprintf("%p", &c)] = s.visitGroup(c)
 		}
 	}
+	s.ws.Model = model
+}
+
+func (s *SemanticAnalyser) visitGroup(node *ASTNode) *Group {
+	AugmentAttributes(node)
+	logger.Println("visitGroup")
+	return &Group{Name: node.Attributes[0].Content}
+}
+
+func isAssignment(node *ASTNode, t string) bool {
+	return node.Type == "assignment" && node.Children[1].Content == t
+}
+
+func (s *SemanticAnalyser) getIdentifier(node *ASTNode) string {
+	return node.Children[0].Content
 }
 
 // Visits a person node
-func (s *SemanticAnalyser) visitPerson(node *ASTNode) {
+func (s *SemanticAnalyser) visitPerson(node *ASTNode) *Person {
 	AugmentAttributes(node)
 	logger.Println("visitPerson")
+	return &Person{Name: node.Attributes[0].Content}
 }
 
 // Visits a person node

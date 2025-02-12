@@ -25,7 +25,7 @@ type Workspace struct {
 	Adrs          *ADR
 	Description   string
 	Configuration *Configuration
-	model         *Model
+	Model         *Model
 	views         *ViewSet
 }
 
@@ -116,7 +116,19 @@ func mapToString(m []*Token) string {
 	return result
 }
 
-type Model struct{}
+type Model struct {
+	Identifiers string
+	People      map[string]*Person
+	Groups      map[string]*Group
+}
+
+type Group struct {
+	Name string
+}
+
+type Person struct {
+	Name string
+}
 type ViewSet struct{}
 
 type DiagnosticSeverity string

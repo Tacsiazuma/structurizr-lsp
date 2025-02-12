@@ -201,6 +201,34 @@ func TestSemanticAnalyser(t *testing.T) {
 			assert.Equal(t, "Unexpected children: unexpected", diags[0].Message)
 		})
 	})
+	t.Run("model", func(t *testing.T) {
+		t.Run("!identifiers allowed", func(t *testing.T) {
+			sut := NewTestAnalyser("workspace {\nmodel {\n!identifiers flat\n}\nviews {\n}\n}")
+			ws, _, diags := sut.Analyse()
+			assert.Equal(t, 0, len(diags))
+			assert.Equal(t, "flat", ws.Model.Identifiers)
+		})
+		t.Run("persons allowed", func(t *testing.T) {
+			sut := NewTestAnalyser("workspace {\nmodel {\nperson \"name\"\n}\nviews {\n}\n}")
+			ws, _, diags := sut.Analyse()
+			assert.Equal(t, 0, len(diags))
+			person := firstPerson(ws.Model.People)
+			assert.Equal(t, &Person{Name: "name"}, person)
+		})
+		t.Run("groups allowed", func(t *testing.T) {
+			sut := NewTestAnalyser("workspace {\nmodel {\ngroup \"name\" {\n}\n}\nviews {\n}\n}")
+			ws, _, diags := sut.Analyse()
+			assert.Equal(t, 0, len(diags))
+			group := firstGroup(ws.Model.Groups)
+			assert.Equal(t, &Group{Name: "name"}, group)
+		})
+		t.Run("assignments allowed", func(t *testing.T) {
+			sut := NewTestAnalyser("workspace {\nmodel {\nsomeone = person \"name\"\n}\nviews {\n}\n}")
+			ws, _, diags := sut.Analyse()
+			assert.Equal(t, 0, len(diags))
+			assert.Equal(t, &Person{Name: "name"}, ws.Model.People["someone"])
+		})
+	})
 	t.Run("augments properties", func(t *testing.T) {
 		sut := NewTestAnalyser("workspace \"name\" \"description\" {\nmodel {\n}\nviews {\nproperties {\n\"key\" \"value\"\n}\n}\n}")
 		_, ast, _ := sut.Analyse()
@@ -225,4 +253,17 @@ func TestSemanticAnalyser(t *testing.T) {
 
 func NewTestAnalyser(content string) *SemanticAnalyser {
 	return &SemanticAnalyser{parser: New("test.dsl", content, &FakeIncluder{})}
+}
+func firstPerson(haystack map[string]*Person) *Person {
+	for _, v := range haystack {
+		return v
+	}
+	return nil
+}
+
+func firstGroup(haystack map[string]*Group) *Group {
+	for _, v := range haystack {
+		return v
+	}
+	return nil
 }
