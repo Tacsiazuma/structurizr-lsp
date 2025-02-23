@@ -212,8 +212,7 @@ func TestSemanticAnalyser(t *testing.T) {
 			sut := NewTestAnalyser("workspace {\nmodel {\nperson \"name\"\n}\nviews {\n}\n}")
 			ws, _, diags := sut.Analyse()
 			assert.Equal(t, 0, len(diags))
-			person := firstPerson(ws.Model.People)
-			assert.Equal(t, &Person{Name: "name"}, person)
+			assert.Equal(t, &Person{Name: "name"}, ws.Model.People["name"])
 		})
 		t.Run("groups allowed", func(t *testing.T) {
 			sut := NewTestAnalyser("workspace {\nmodel {\ngroup \"name\" {\n}\n}\nviews {\n}\n}")
@@ -226,7 +225,7 @@ func TestSemanticAnalyser(t *testing.T) {
 			sut := NewTestAnalyser("workspace {\nmodel {\nsomeone = person \"name\"\n}\nviews {\n}\n}")
 			ws, _, diags := sut.Analyse()
 			assert.Equal(t, 0, len(diags))
-			assert.Equal(t, &Person{Name: "name"}, ws.Model.People["someone"])
+			assert.Equal(t, &Person{Name: "name"}, ws.Model.People["name"])
 		})
 	})
 	t.Run("augments properties", func(t *testing.T) {
