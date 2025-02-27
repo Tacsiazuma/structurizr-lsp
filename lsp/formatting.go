@@ -22,21 +22,21 @@ func (l *Lsp) handleFormatting(id int, param FormattingParams) {
 	lineNum := 0
 
 	for scanner.Scan() {
-        originalLine := scanner.Text()
+		originalLine := scanner.Text()
 		line := strings.TrimSpace(originalLine)
-		if line == "" {
-			lineNum++
-			continue // Skip empty lines
-		}
-
+		
 		var formattedLine string
-		if strings.HasSuffix(line, "{") {
+		if line == "" {
+			formattedLine = "" // Preserve empty lines
+		} else if strings.HasSuffix(line, "{") {
 			formattedLine = strings.Repeat("    ", indentLevel) + line
 			indentLevel++
-		} else if strings.HasPrefix(line, "}") {
-			indentLevel--
+		} else if strings.Contains(line, "}") {
+			// Count closing braces to handle multiple on one line
+			closingCount := strings.Count(line, "}")
+			indentLevel -= closingCount
 			if indentLevel < 0 {
-				indentLevel = 0 // Prevent negative indentation
+				indentLevel = 0
 			}
 			formattedLine = strings.Repeat("    ", indentLevel) + line
 		} else {
@@ -44,15 +44,14 @@ func (l *Lsp) handleFormatting(id int, param FormattingParams) {
 		}
 
 		sb.WriteString(formattedLine + "\n")
-		if formattedLine != line {
-			edits = append(edits, TextEdit{
-				Range: Range{
-					Start: Position{Line: lineNum, Character: 0},
-					End:   Position{Line: lineNum, Character: max(len(formattedLine), len(originalLine))},
-				},
-				NewText: formattedLine,
-			})
-		}
+		// Always create an edit, even for empty lines
+		edits = append(edits, TextEdit{
+			Range: Range{
+				Start: Position{Line: lineNum, Character: 0},
+				End:   Position{Line: lineNum, Character: len(originalLine)},
+			},
+			NewText: formattedLine,
+		})
 		lineNum++
 	}
 
