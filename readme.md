@@ -31,3 +31,15 @@ Then set it up as the executable to run by your IDE using stdin/stdout as an int
 - [ ] Go to references
 - [ ] Rename support
 - [ ] Debounce diagnostic notifications
+
+### Supported language elements
+
+- [x] workspace
+- [x] properties
+- [x] !identifiers
+- [x] !docs
+- [x] !adrs
+- [x] configuration
+- [x] scope
+- [x] visibility
+- [x] users
