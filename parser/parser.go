@@ -117,12 +117,22 @@ func mapToString(m []*Token) string {
 }
 
 type Model struct {
-	Identifiers string
-	People      map[string]*Person
-	Groups      map[string]*Group
+	Identifiers            string
+	People                 map[string]*Person
+	Groups                 map[string]*Group
+	SoftwareSystems        map[string]*SoftwareSystem
+	DeploymentEnvironments map[string]*DeploymentEnvironment
+	References             map[string]interface{}
 }
 
 type Group struct {
+	Name string
+}
+type DeploymentEnvironment struct {
+	Name string
+}
+
+type SoftwareSystem struct {
 	Name string
 }
 

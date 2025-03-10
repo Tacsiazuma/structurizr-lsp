@@ -227,6 +227,24 @@ func TestSemanticAnalyser(t *testing.T) {
 			assert.Equal(t, 0, len(diags))
 			assert.Equal(t, &Person{Name: "name"}, ws.Model.People["name"])
 		})
+		t.Run("references for assignments stored", func(t *testing.T) {
+			sut := NewTestAnalyser("workspace {\nmodel {\nsomeone = person \"name\"\n}\nviews {\n}\n}")
+			ws, _, diags := sut.Analyse()
+			assert.Equal(t, 0, len(diags))
+			assert.Equal(t, &Person{Name: "name"}, ws.Model.References["someone"])
+		})
+		t.Run("softwareSystems allowed", func(t *testing.T) {
+			sut := NewTestAnalyser("workspace {\nmodel {\nsoftwareSystem \"name\" {\n}\n}\nviews {\n}\n}")
+			ws, _, diags := sut.Analyse()
+			assert.Equal(t, 0, len(diags))
+			assert.Equal(t, &SoftwareSystem{Name: "name"}, ws.Model.SoftwareSystems["name"])
+		})
+		t.Run("deploymentEnvironment allowed", func(t *testing.T) {
+			sut := NewTestAnalyser("workspace {\nmodel {\ndeploymentEnvironment \"name\" {\n}\n}\nviews {\n}\n}")
+			ws, _, diags := sut.Analyse()
+			assert.Equal(t, 0, len(diags))
+			assert.Equal(t, &DeploymentEnvironment{Name: "name"}, ws.Model.DeploymentEnvironments["name"])
+		})
 	})
 	t.Run("augments properties", func(t *testing.T) {
 		sut := NewTestAnalyser("workspace \"name\" \"description\" {\nmodel {\n}\nviews {\nproperties {\n\"key\" \"value\"\n}\n}\n}")

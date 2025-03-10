@@ -180,7 +180,13 @@ func (s *SemanticAnalyser) visitProperties(node *ASTNode) map[string]string {
 
 func (s *SemanticAnalyser) visitModel(node *ASTNode) {
 	logger.Println("visitModel")
-	model := &Model{People: make(map[string]*Person), Groups: make(map[string]*Group)}
+	model := &Model{
+		People:                 make(map[string]*Person),
+		Groups:                 make(map[string]*Group),
+		References:             make(map[string]interface{}),
+		SoftwareSystems:        make(map[string]*SoftwareSystem),
+		DeploymentEnvironments: make(map[string]*DeploymentEnvironment),
+	}
 	for _, c := range node.Children {
 		if c.Token.Content == "person" {
 			person := s.visitPerson(c)
@@ -189,9 +195,17 @@ func (s *SemanticAnalyser) visitModel(node *ASTNode) {
 			model.Identifiers = s.visitOptionWithPossibleValues(c, "flat", "hierarchical")
 		} else if isAssignment(c, "person") {
 			person := s.visitPerson(c.Children[1])
+			identifier := getIdentifier(c)
+			model.References[identifier] = person
 			model.People[person.Name] = person
 		} else if isKeyWordWithName(c, "group") {
 			model.Groups[fmt.Sprintf("%p", &c)] = s.visitGroup(c)
+		} else if isKeyWordWithName(c, "softwareSystem") {
+			ss := s.visitSoftwareSystem(c)
+			model.SoftwareSystems[ss.Name] = ss
+		} else if isKeyWordWithName(c, "deploymentEnvironment") {
+			de := s.visitDeploymentEnvironment(c)
+			model.DeploymentEnvironments[de.Name] = de
 		}
 	}
 	s.ws.Model = model
@@ -201,6 +215,18 @@ func (s *SemanticAnalyser) visitGroup(node *ASTNode) *Group {
 	AugmentAttributes(node)
 	logger.Println("visitGroup")
 	return &Group{Name: node.Attributes[0].Content}
+}
+
+func (s *SemanticAnalyser) visitSoftwareSystem(node *ASTNode) *SoftwareSystem {
+	AugmentAttributes(node)
+	logger.Println("visitSoftwareSystem")
+	return &SoftwareSystem{Name: node.Attributes[0].Content}
+}
+
+func (s *SemanticAnalyser) visitDeploymentEnvironment(node *ASTNode) *DeploymentEnvironment {
+	AugmentAttributes(node)
+	logger.Println("visitDeploymentEnvironment")
+	return &DeploymentEnvironment{Name: node.Attributes[0].Content}
 }
 
 func isAssignment(node *ASTNode, t string) bool {
@@ -233,6 +259,10 @@ func (s *SemanticAnalyser) visitConfiguration(node *ASTNode) *Configuration {
 		}
 	}
 	return config
+}
+
+func getIdentifier(c *ASTNode) string {
+	return c.Children[0].Content
 }
 
 func (s *SemanticAnalyser) visitUsers(node *ASTNode) map[string]string {
