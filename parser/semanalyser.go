@@ -183,12 +183,13 @@ func (s *SemanticAnalyser) visitModel(node *ASTNode) {
 	model := &Model{People: make(map[string]*Person), Groups: make(map[string]*Group)}
 	for _, c := range node.Children {
 		if c.Token.Content == "person" {
-			model.People[fmt.Sprintf("%p", &c)] = s.visitPerson(c)
+			person := s.visitPerson(c)
+			model.People[person.Name] = person
 		} else if isKeyWordWithName(c, "!identifiers") {
 			model.Identifiers = s.visitOptionWithPossibleValues(c, "flat", "hierarchical")
 		} else if isAssignment(c, "person") {
-			id := s.getIdentifier(c)
-			model.People[id] = s.visitPerson(c.Children[1])
+			person := s.visitPerson(c.Children[1])
+			model.People[person.Name] = person
 		} else if isKeyWordWithName(c, "group") {
 			model.Groups[fmt.Sprintf("%p", &c)] = s.visitGroup(c)
 		}
