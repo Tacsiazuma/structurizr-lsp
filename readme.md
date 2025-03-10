@@ -22,9 +22,9 @@ Then set it up as the executable to run by your IDE using stdin/stdout as an int
 ### TODO
 
 - [x] When problems are solved in a file push empty slice of diagnostics
-- [ ] Inlay hint on name, description and technology
+- [x] Inlay hint on name, description and technology
+- [x] Document formatting
 - [ ] Semantic analysis based on the specs
-- [ ] Document formatting
 - [ ] Handle cancel request
 - [ ] Textdocument/hover 
 - [ ] Go to definition
