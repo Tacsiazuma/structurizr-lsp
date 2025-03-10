@@ -253,12 +253,6 @@ func TestSemanticAnalyser(t *testing.T) {
 func NewTestAnalyser(content string) *SemanticAnalyser {
 	return &SemanticAnalyser{parser: New("test.dsl", content, &FakeIncluder{})}
 }
-func firstPerson(haystack map[string]*Person) *Person {
-	for _, v := range haystack {
-		return v
-	}
-	return nil
-}
 
 func firstGroup(haystack map[string]*Group) *Group {
 	for _, v := range haystack {

@@ -207,10 +207,6 @@ func isAssignment(node *ASTNode, t string) bool {
 	return node.Type == "assignment" && node.Children[1].Content == t
 }
 
-func (s *SemanticAnalyser) getIdentifier(node *ASTNode) string {
-	return node.Children[0].Content
-}
-
 // Visits a person node
 func (s *SemanticAnalyser) visitPerson(node *ASTNode) *Person {
 	AugmentAttributes(node)
